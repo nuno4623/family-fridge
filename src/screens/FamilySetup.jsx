@@ -80,14 +80,16 @@ export default function FamilySetup() {
       {mode === null && (
         <div className="w-full max-w-xs flex flex-col gap-3">
           <button
-            onClick={() => setMode('create')}
+            onClick={() => setMode('join')}
             className="rounded-tile py-5 text-[16px] font-extrabold text-white shadow-card press"
             style={{ background: 'linear-gradient(140deg, rgb(var(--ff-accent)) 0%, rgb(var(--ff-accent-deep)) 100%)' }}
           >
-            🏡 가족 만들기
-          </button>
-          <button onClick={() => setMode('join')} className="bg-card border-[1.5px] border-line rounded-tile py-5 text-[16px] font-extrabold shadow-card press">
             🔑 초대코드 입력
+            <span className="block text-[12px] font-bold opacity-85 mt-0.5">가족에게 코드를 받았다면 여기!</span>
+          </button>
+          <button onClick={() => setMode('create')} className="bg-card border-[1.5px] border-line rounded-tile py-5 text-[16px] font-extrabold shadow-card press">
+            🏡 새 가족 만들기
+            <span className="block text-[12px] font-bold text-muted mt-0.5">우리 가족 중 첫 번째라면</span>
           </button>
           <p className="text-[12.5px] font-semibold text-muted text-center leading-relaxed">
             가족 중 <b>한 명만</b> 만들면 돼요.<br />나머지는 초대코드로 참여!
@@ -98,6 +100,9 @@ export default function FamilySetup() {
 
       {mode === 'create' && (
         <div className="w-full max-w-xs flex flex-col gap-3">
+          <p className="text-[12.5px] font-bold bg-accent-soft rounded-btn px-3 py-2.5 leading-relaxed">
+            ⚠️ 가족이 이미 만들어 뒀다면 여기가 아니라 <button onClick={() => { setMode('join'); setError(null) }} className="underline font-extrabold">초대코드 입력</button>으로 가세요!
+          </p>
           <label className="text-[13px] font-bold text-muted">
             가족 이름 <span className="font-semibold">— 앱에 표시될 우리 그룹 이름이에요 (아무거나 OK)</span>
           </label>

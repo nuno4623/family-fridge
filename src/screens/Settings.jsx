@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { doc, updateDoc } from 'firebase/firestore'
+import { doc, updateDoc, arrayRemove } from 'firebase/firestore'
 import { db } from '../firebase'
 import { useAuth } from '../contexts/AuthContext'
 import { useTheme, THEMES, FONTS, SIZES } from '../theme'
@@ -229,6 +229,23 @@ export default function Settings({ onClose }) {
 
         <button onClick={logout} className="w-full bg-card border-[1.5px] border-line rounded-btn py-4 text-[14.5px] font-extrabold text-muted press">
           로그아웃
+        </button>
+
+        <button
+          onClick={async () => {
+            if (!confirm('이 가족에서 나갈까요?\n실수로 가족을 잘못 만들었을 때 사용하세요. 초대코드로 다시 참여할 수 있어요.')) return
+            const familyId = profile?.familyId
+            // 내 문서 먼저 비우고(화면 전환), 가족 멤버 목록에서도 제거 (실패해도 무방)
+            await updateDoc(userRef, { familyId: null })
+            if (familyId) {
+              try {
+                await updateDoc(doc(db, 'families', familyId), { members: arrayRemove(user.uid) })
+              } catch { /* 이미 권한이 없어졌으면 무시 */ }
+            }
+          }}
+          className="w-full mt-3 text-[13px] font-bold text-danger/80 underline press"
+        >
+          가족 나가기 (잘못 만들었을 때)
         </button>
       </div>
     </div>
