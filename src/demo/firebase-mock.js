@@ -41,9 +41,9 @@ function seed(path, entries) {
 }
 
 seed('users', [
-  [U1, { name: '지선', color: '#F9CFD6', familyId: FAM, fcmTokens: [], notify: { shopping: true, event: true, memo: true } }],
-  [U2, { name: '준호', color: '#CFE5F4', familyId: FAM, fcmTokens: [], notify: { shopping: true, event: true, memo: true } }],
-  [U3, { name: '어머님', color: '#CDEBDD', familyId: FAM, fcmTokens: [], notify: { shopping: true, event: false, memo: true } }]
+  [U1, { name: '지선', color: '#E08A5B', familyId: FAM, fcmTokens: [], notify: { shopping: true, event: true, memo: true } }],
+  [U2, { name: '준호', color: '#2E6BFF', familyId: FAM, fcmTokens: [], notify: { shopping: true, event: true, memo: true } }],
+  [U3, { name: '어머님', color: '#16A97A', familyId: FAM, fcmTokens: [], notify: { shopping: true, event: false, memo: true } }]
 ])
 
 seed('families', [

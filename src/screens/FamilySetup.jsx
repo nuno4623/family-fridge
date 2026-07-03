@@ -75,55 +75,69 @@ export default function FamilySetup() {
   return (
     <div className="min-h-dvh flex flex-col items-center justify-center px-6 bg-bg">
       <div className="text-[56px] mb-3">👨‍👩‍👧</div>
-      <h1 className="text-[24px] font-bold mb-8">가족과 연결하기</h1>
+      <h1 className="text-[24px] font-extrabold tracking-tight mb-8">가족과 연결하기</h1>
 
       {mode === null && (
         <div className="w-full max-w-xs flex flex-col gap-3">
-          <button onClick={() => setMode('create')} className="bg-peach rounded-card py-5 text-[18px] font-bold shadow-card press">
+          <button
+            onClick={() => setMode('create')}
+            className="rounded-tile py-5 text-[16px] font-extrabold text-white shadow-card press"
+            style={{ background: 'linear-gradient(140deg, rgb(var(--ff-accent)) 0%, rgb(var(--ff-accent-deep)) 100%)' }}
+          >
             🏡 가족 만들기
           </button>
-          <button onClick={() => setMode('join')} className="bg-card border border-ink/15 rounded-card py-5 text-[18px] font-bold shadow-card press">
+          <button onClick={() => setMode('join')} className="bg-card border-[1.5px] border-line rounded-tile py-5 text-[16px] font-extrabold shadow-card press">
             🔑 초대코드 입력
           </button>
-          <button onClick={logout} className="mt-4 text-[15px] text-ink/50 underline">로그아웃</button>
+          <button onClick={logout} className="mt-4 text-[13.5px] font-bold text-muted underline">로그아웃</button>
         </div>
       )}
 
       {mode === 'create' && (
         <div className="w-full max-w-xs flex flex-col gap-3">
-          <label className="text-[16px] font-medium text-ink/70">가족 이름</label>
+          <label className="text-[13px] font-bold text-muted">가족 이름</label>
           <input
             value={familyName}
             onChange={(e) => setFamilyName(e.target.value)}
-            className="bg-card border border-ink/15 rounded-btn px-4 py-4 text-[18px]"
+            className="bg-card border-[1.5px] border-line rounded-btn px-4 py-4 text-[16px] font-semibold outline-none focus:border-accent"
             placeholder="우리집"
           />
-          <button onClick={createFamily} disabled={busy} className="bg-peach rounded-btn py-4 text-[17px] font-bold press disabled:opacity-50">
+          <button
+            onClick={createFamily}
+            disabled={busy}
+            className="rounded-2xl py-4 text-[15.5px] font-extrabold text-white bg-accent press disabled:opacity-50"
+            style={{ boxShadow: '0 8px 20px rgb(var(--ff-accent) / .4)' }}
+          >
             {busy ? '만드는 중…' : '만들기'}
           </button>
-          <button onClick={() => { setMode(null); setError(null) }} className="text-[15px] text-ink/50 underline">뒤로</button>
+          <button onClick={() => { setMode(null); setError(null) }} className="text-[13.5px] font-bold text-muted underline">뒤로</button>
         </div>
       )}
 
       {mode === 'join' && (
         <div className="w-full max-w-xs flex flex-col gap-3">
-          <label className="text-[16px] font-medium text-ink/70">초대코드 6자리</label>
+          <label className="text-[13px] font-bold text-muted">초대코드 6자리</label>
           <input
             value={code}
             onChange={(e) => setCode(e.target.value.toUpperCase())}
             maxLength={6}
-            className="bg-card border border-ink/15 rounded-btn px-4 py-4 text-[24px] font-bold tracking-[0.3em] text-center uppercase"
+            className="bg-card border-[1.5px] border-line rounded-btn px-4 py-4 text-[24px] font-extrabold tracking-[0.3em] text-center uppercase outline-none focus:border-accent"
             placeholder="ABC123"
             autoCapitalize="characters"
           />
-          <button onClick={joinFamily} disabled={busy} className="bg-peach rounded-btn py-4 text-[17px] font-bold press disabled:opacity-50">
+          <button
+            onClick={joinFamily}
+            disabled={busy}
+            className="rounded-2xl py-4 text-[15.5px] font-extrabold text-white bg-accent press disabled:opacity-50"
+            style={{ boxShadow: '0 8px 20px rgb(var(--ff-accent) / .4)' }}
+          >
             {busy ? '참여하는 중…' : '참여하기'}
           </button>
-          <button onClick={() => { setMode(null); setError(null) }} className="text-[15px] text-ink/50 underline">뒤로</button>
+          <button onClick={() => { setMode(null); setError(null) }} className="text-[13.5px] font-bold text-muted underline">뒤로</button>
         </div>
       )}
 
-      {error && <p className="mt-4 text-[15px] text-red-500 text-center">{error}</p>}
+      {error && <p className="mt-4 text-[14px] font-semibold text-danger text-center">{error}</p>}
     </div>
   )
 }

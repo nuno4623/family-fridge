@@ -1,6 +1,8 @@
-export const MEMBER_COLORS = ['#F9CFD6', '#CFE5F4', '#CDEBDD', '#DDD6F3', '#FFF3C4']
+export const MEMBER_COLORS = ['#E08A5B', '#2E6BFF', '#16A97A', '#B563D6', '#FF4D8D']
 
 export const CATEGORIES = ['냉장', '냉동', '실온', '기타']
+
+export const CAT_EMOJI = { 냉장: '🥬', 냉동: '🧊', 실온: '🥫', 기타: '🧺' }
 
 export const MEMO_COLORS = {
   pink: '#F9CFD6',
@@ -9,11 +11,12 @@ export const MEMO_COLORS = {
   lavender: '#DDD6F3'
 }
 
+// color는 테마 CSS 변수를 참조 → 인라인 style background에 그대로 사용 (글자는 흰색)
 export const STATUS = {
-  stocked: { label: '충분', color: '#CDEBDD', next: 'low' },
-  low: { label: '곧 떨어짐', color: '#FFF3C4', next: 'out' },
-  out: { label: '떨어짐', color: '#F9CFD6', next: 'stocked' },
-  buying: { label: '장바구니', color: '#FFD9C8', next: 'stocked' }
+  stocked: { label: '충분', color: 'rgb(var(--ff-good))', next: 'low' },
+  low: { label: '곧 떨어짐', color: 'rgb(var(--ff-warn))', next: 'out' },
+  out: { label: '떨어짐', color: 'rgb(var(--ff-danger))', next: 'stocked' },
+  buying: { label: '장바구니', color: 'rgb(var(--ff-accent))', next: 'stocked' }
 }
 
 const DAY_NAMES = ['일', '월', '화', '수', '목', '금', '토']

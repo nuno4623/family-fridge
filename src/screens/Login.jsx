@@ -21,15 +21,20 @@ export default function Login() {
 
   return (
     <div className="min-h-dvh flex flex-col items-center justify-center px-8 bg-bg">
-      <div className="text-[64px] mb-4">🧊</div>
-      <h1 className="text-[28px] font-bold mb-2">우리집 냉장고</h1>
-      <p className="text-[17px] text-ink/60 mb-10 text-center">
+      <div
+        className="w-[92px] h-[92px] rounded-[28px] grid place-items-center text-[44px] mb-5 shadow-card"
+        style={{ background: 'linear-gradient(140deg, rgb(var(--ff-accent)) 0%, rgb(var(--ff-accent-deep)) 100%)' }}
+      >
+        🧊
+      </div>
+      <h1 className="text-[28px] font-extrabold tracking-tight mb-2">우리 집 냉장고</h1>
+      <p className="text-[15px] font-semibold text-muted mb-10 text-center">
         가족과 함께 쓰는<br />식재료 · 일정 · 메모
       </p>
       <button
         onClick={handleLogin}
         disabled={busy}
-        className="w-full max-w-xs bg-card border border-ink/15 rounded-btn py-4 text-[17px] font-bold shadow-card press flex items-center justify-center gap-3"
+        className="w-full max-w-xs bg-card border-[1.5px] border-line rounded-2xl py-4 text-[15.5px] font-extrabold shadow-card press flex items-center justify-center gap-3"
       >
         <svg width="20" height="20" viewBox="0 0 48 48">
           <path fill="#FFC107" d="M43.6 20H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 8 3l5.7-5.7C34.3 6.1 29.4 4 24 4 13 4 4 13 4 24s9 20 20 20 20-9 20-20c0-1.3-.2-2.7-.4-4z"/>
@@ -39,7 +44,7 @@ export default function Login() {
         </svg>
         구글로 시작하기
       </button>
-      {error && <p className="mt-4 text-[15px] text-red-500">{error}</p>}
+      {error && <p className="mt-4 text-[14px] font-semibold text-danger">{error}</p>}
     </div>
   )
 }

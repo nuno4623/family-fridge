@@ -1,8 +1,10 @@
 import { useCallback, useState } from 'react'
 import { useAuth } from './contexts/AuthContext'
+import { useTheme } from './theme'
 import { useFamilyCollection } from './hooks/useFamilyCollection'
 import { useToast } from './components/Toast'
 import TabBar from './components/TabBar'
+import AddItemSheet from './components/AddItemSheet'
 import Login from './screens/Login'
 import FamilySetup from './screens/FamilySetup'
 import Home from './screens/Home'
@@ -14,9 +16,12 @@ import { STATUS } from './utils'
 
 export default function App() {
   const { user, profile, familyId, members } = useAuth()
+  const { scale } = useTheme()
   const showToast = useToast()
   const [tab, setTab] = useState('home')
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [addOpen, setAddOpen] = useState(false)
+  const [fabTick, setFabTick] = useState(0) // 캘린더·메모 탭 FAB 신호
 
   // 다른 가족의 식재료 변경 → 실시간 토스트
   const onItemChange = useCallback((change) => {
@@ -70,8 +75,13 @@ export default function App() {
 
   const buyCount = (items || []).filter((i) => i.status !== 'stocked' && STATUS[i.status]).length
 
+  function onFab() {
+    if (tab === 'home' || tab === 'fridge') setAddOpen(true)
+    else setFabTick((t) => t + 1) // 캘린더 → 오늘 일정 추가 / 메모 → 새 메모
+  }
+
   return (
-    <div className="min-h-dvh bg-bg pb-[calc(64px+env(safe-area-inset-bottom))]">
+    <div className="min-h-dvh bg-bg pb-[calc(72px+env(safe-area-inset-bottom))]" style={{ zoom: scale }}>
       {tab === 'home' && (
         <Home
           items={items} events={events} memos={memos}
@@ -80,10 +90,11 @@ export default function App() {
         />
       )}
       {tab === 'fridge' && <Fridge items={items} />}
-      {tab === 'calendar' && <Calendar events={events} />}
-      {tab === 'memo' && <Memos memos={memos} />}
+      {tab === 'calendar' && <Calendar events={events} fabTick={fabTick} />}
+      {tab === 'memo' && <Memos memos={memos} fabTick={fabTick} />}
 
-      <TabBar tab={tab} onChange={setTab} badges={{ fridge: buyCount }} />
+      <TabBar tab={tab} onChange={setTab} badges={{ fridge: buyCount }} onFab={onFab} />
+      <AddItemSheet open={addOpen} onClose={() => setAddOpen(false)} />
       {settingsOpen && <Settings onClose={() => setSettingsOpen(false)} />}
     </div>
   )

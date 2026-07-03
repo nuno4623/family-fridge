@@ -1,17 +1,26 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { collection, doc, addDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '../firebase'
 import { useAuth } from '../contexts/AuthContext'
 import BottomSheet from '../components/BottomSheet'
 import { MEMO_COLORS, relativeTime } from '../utils'
 
-export default function Memos({ memos }) {
+export default function Memos({ memos, fabTick }) {
   const { user, familyId, members } = useAuth()
   const [writing, setWriting] = useState(false)
   const [text, setText] = useState('')
   const [color, setColor] = useState('yellow')
   const [actionMemo, setActionMemo] = useState(null) // 길게 누른 메모
   const pressTimer = useRef(null)
+  const lastTick = useRef(fabTick)
+
+  // 중앙 FAB → 새 메모
+  useEffect(() => {
+    if (fabTick !== lastTick.current) {
+      lastTick.current = fabTick
+      setWriting(true)
+    }
+  }, [fabTick])
 
   const memosCol = collection(db, 'families', familyId, 'memos')
 
@@ -53,12 +62,13 @@ export default function Memos({ memos }) {
   sorted.forEach((m, i) => cols[i % 2].push(m))
 
   return (
-    <div className="px-5 pt-6 pb-4 max-w-lg mx-auto min-h-full">
-      <h1 className="text-[24px] font-bold mb-4">📝 메모</h1>
+    <div className="px-5 pt-5 pb-4 max-w-lg mx-auto min-h-full">
+      <h1 className="text-[25px] font-extrabold tracking-tight mb-1">메모 📝</h1>
+      <p className="text-[13.5px] font-semibold text-muted mb-5">냉장고 문에 붙이는 우리 집 메모</p>
 
       {(memos || []).length === 0 && (
-        <p className="text-center text-[16px] text-ink/40 py-16">
-          냉장고 문이 허전해요.<br />첫 메모를 붙여 보세요! 🧲
+        <p className="text-center text-[14.5px] font-semibold text-muted py-16">
+          냉장고 문이 허전해요.<br />＋ 버튼으로 첫 메모를 붙여 보세요! 🧲
         </p>
       )}
 
@@ -68,7 +78,7 @@ export default function Memos({ memos }) {
             {col.map((m) => (
               <div
                 key={m.id}
-                className="rounded-card shadow-card px-4 pt-5 pb-3 relative select-none press"
+                className="rounded-card shadow-soft px-4 pt-5 pb-3 relative select-none press text-[#4A4238]"
                 style={{ background: MEMO_COLORS[m.color] || MEMO_COLORS.yellow }}
                 onTouchStart={() => startPress(m)}
                 onTouchEnd={endPress}
@@ -79,11 +89,11 @@ export default function Memos({ memos }) {
               >
                 <span
                   className="absolute top-2 left-1/2 -translate-x-1/2 w-3.5 h-3.5 rounded-full border-2 border-white/80 shadow"
-                  style={{ background: members[m.author]?.color || '#F9CFD6' }}
+                  style={{ background: members[m.author]?.color || '#E08A5B' }}
                 />
                 {m.pinned && <span className="absolute top-1.5 right-2 text-[14px]">📌</span>}
-                <p className="text-[16px] whitespace-pre-wrap break-words leading-relaxed">{m.text}</p>
-                <p className="text-[12px] text-ink/45 mt-2">
+                <p className="text-[14.5px] font-semibold whitespace-pre-wrap break-words leading-relaxed">{m.text}</p>
+                <p className="text-[11.5px] font-semibold opacity-50 mt-2">
                   {members[m.author]?.name || ''} · {relativeTime(m.createdAt)}
                 </p>
               </div>
@@ -92,24 +102,16 @@ export default function Memos({ memos }) {
         ))}
       </div>
 
-      <p className="text-[13px] text-ink/35 text-center mt-6">메모를 길게 누르면 고정 · 삭제할 수 있어요</p>
+      <p className="text-[12px] font-semibold text-muted/70 text-center mt-6">메모를 길게 누르면 고정 · 삭제할 수 있어요</p>
 
-      <button
-        onClick={() => setWriting(true)}
-        className="fixed right-5 bottom-[calc(76px+env(safe-area-inset-bottom))] w-14 h-14 bg-peach rounded-full shadow-lg text-[26px] press z-30"
-        aria-label="새 메모"
-      >
-        ＋
-      </button>
-
-      <BottomSheet open={writing} onClose={() => setWriting(false)} title="🧲 새 메모 붙이기">
+      <BottomSheet open={writing} onClose={() => setWriting(false)} title="새 메모 붙이기 🧲">
         <textarea
           autoFocus
           value={text}
           onChange={(e) => setText(e.target.value)}
           rows={4}
           placeholder="메모를 적어 주세요"
-          className="w-full rounded-btn px-4 py-3.5 text-[17px] border border-ink/15 resize-none"
+          className="w-full rounded-btn px-4 py-3.5 text-[15px] font-semibold border-[1.5px] border-line resize-none outline-none text-[#4A4238]"
           style={{ background: MEMO_COLORS[color] }}
         />
         <div className="flex gap-3 my-4 justify-center">
@@ -117,13 +119,18 @@ export default function Memos({ memos }) {
             <button
               key={key}
               onClick={() => setColor(key)}
-              className={`w-11 h-11 rounded-full press border-2 ${color === key ? 'border-ink/60 scale-110' : 'border-transparent'}`}
+              className={`w-11 h-11 rounded-full press border-2 ${color === key ? 'border-accent scale-110' : 'border-line'}`}
               style={{ background: hex }}
               aria-label={key}
             />
           ))}
         </div>
-        <button onClick={addMemo} disabled={!text.trim()} className="w-full bg-peach rounded-btn py-4 text-[17px] font-bold press disabled:opacity-40">
+        <button
+          onClick={addMemo}
+          disabled={!text.trim()}
+          className="w-full py-4 rounded-2xl text-[15.5px] font-extrabold text-white bg-accent press disabled:opacity-40"
+          style={{ boxShadow: '0 8px 20px rgb(var(--ff-accent) / .4)' }}
+        >
           붙이기
         </button>
       </BottomSheet>
@@ -131,15 +138,15 @@ export default function Memos({ memos }) {
       <BottomSheet open={!!actionMemo} onClose={() => setActionMemo(null)} title="메모 관리">
         {actionMemo && (
           <div className="flex flex-col gap-2">
-            <button onClick={() => togglePin(actionMemo)} className="bg-bg rounded-btn py-4 text-[17px] font-bold press">
+            <button onClick={() => togglePin(actionMemo)} className="bg-alt rounded-btn py-4 text-[15px] font-extrabold press">
               {actionMemo.pinned ? '📌 고정 해제' : '📌 홈에 고정'}
             </button>
             {actionMemo.author === user.uid && (
-              <button onClick={() => removeMemo(actionMemo)} className="bg-rose/60 rounded-btn py-4 text-[17px] font-bold press">
+              <button onClick={() => removeMemo(actionMemo)} className="rounded-btn py-4 text-[15px] font-extrabold text-white bg-danger press">
                 🗑 삭제
               </button>
             )}
-            <button onClick={() => setActionMemo(null)} className="text-[15px] text-ink/50 py-2">닫기</button>
+            <button onClick={() => setActionMemo(null)} className="text-[13.5px] font-bold text-muted py-2">닫기</button>
           </div>
         )}
       </BottomSheet>

@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client'
 import App from './App'
 import { AuthProvider } from './contexts/AuthContext'
 import { ToastProvider } from './components/Toast'
+import { ThemeProvider } from './theme'
 import { isConfigured } from './firebase'
 import './index.css'
 
@@ -22,19 +23,21 @@ function ConfigMissing() {
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    {isConfigured ? (
-      <AuthProvider>
-        <ToastProvider>
-          {import.meta.env.VITE_DEMO && (
-            <div className="bg-ink text-bg text-center text-[13px] py-1.5 font-medium">
-              🧪 데모 모드 — 샘플 데이터로 둘러보는 중이에요 (저장되지 않아요)
-            </div>
-          )}
-          <App />
-        </ToastProvider>
-      </AuthProvider>
-    ) : (
-      <ConfigMissing />
-    )}
+    <ThemeProvider>
+      {isConfigured ? (
+        <AuthProvider>
+          <ToastProvider>
+            {import.meta.env.VITE_DEMO && (
+              <div className="bg-ink text-white text-center text-[13px] py-1.5 font-medium">
+                🧪 데모 모드 — 샘플 데이터로 둘러보는 중이에요 (저장되지 않아요)
+              </div>
+            )}
+            <App />
+          </ToastProvider>
+        </AuthProvider>
+      ) : (
+        <ConfigMissing />
+      )}
+    </ThemeProvider>
   </React.StrictMode>
 )

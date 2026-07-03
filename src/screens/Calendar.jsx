@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { collection, doc, addDoc, deleteDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '../firebase'
 import { useAuth } from '../contexts/AuthContext'
@@ -7,14 +7,23 @@ import { toDateStr, todayStr, formatShortDate } from '../utils'
 
 const DAY_NAMES = ['일', '월', '화', '수', '목', '금', '토']
 
-export default function Calendar({ events }) {
-  const { user, members } = useAuth()
-  const { familyId } = useAuth()
+export default function Calendar({ events, fabTick }) {
+  const { user, members, familyId } = useAuth()
   const [cursor, setCursor] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1) })
   const [selected, setSelected] = useState(null) // 'YYYY-MM-DD'
   const [adding, setAdding] = useState(false)
   const [form, setForm] = useState({ title: '', time: '', memo: '' })
   const today = todayStr()
+  const lastTick = useRef(fabTick)
+
+  // 중앙 FAB → 오늘 날짜 일정 추가
+  useEffect(() => {
+    if (fabTick !== lastTick.current) {
+      lastTick.current = fabTick
+      setSelected(today)
+      setAdding(true)
+    }
+  }, [fabTick, today])
 
   const eventsByDate = useMemo(() => {
     const map = {}
@@ -62,73 +71,93 @@ export default function Calendar({ events }) {
 
   const selectedEvents = selected ? (eventsByDate[selected] || []) : []
 
+  function hexToRgba(hex, a) {
+    const h = (hex || '#FF6B35').replace('#', '')
+    const n = parseInt(h, 16)
+    return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`
+  }
+
   return (
-    <div className="px-5 pt-6 pb-4 max-w-lg mx-auto">
-      <h1 className="text-[24px] font-bold mb-4">📅 캘린더</h1>
-
-      <div className="bg-card rounded-card shadow-card p-4">
-        <div className="flex items-center justify-between mb-3">
-          <button onClick={() => moveMonth(-1)} className="text-[20px] p-2 press" aria-label="이전 달">‹</button>
-          <p className="text-[18px] font-bold">{cursor.getFullYear()}년 {cursor.getMonth() + 1}월</p>
-          <button onClick={() => moveMonth(1)} className="text-[20px] p-2 press" aria-label="다음 달">›</button>
+    <div className="px-5 pt-5 pb-4 max-w-lg mx-auto">
+      <div className="flex justify-between items-center mb-5">
+        <div>
+          <h1 className="text-[25px] font-extrabold tracking-tight">
+            {cursor.getFullYear()}년 {cursor.getMonth() + 1}월
+          </h1>
+          <p className="text-[13.5px] font-semibold text-muted">가족 일정</p>
         </div>
-
-        <div className="grid grid-cols-7 mb-1">
-          {DAY_NAMES.map((d, i) => (
-            <div key={d} className={`text-center text-[13px] font-bold py-1 ${i === 0 ? 'text-red-400' : 'text-ink/50'}`}>{d}</div>
-          ))}
-        </div>
-
-        <div className="grid grid-cols-7 gap-y-1">
-          {grid.map((date, i) => {
-            if (!date) return <div key={`e${i}`} />
-            const ds = toDateStr(date)
-            const dayEvents = eventsByDate[ds] || []
-            const isToday = ds === today
-            const isSelected = ds === selected
-            return (
-              <button
-                key={ds}
-                onClick={() => setSelected(ds)}
-                className={`flex flex-col items-center py-1.5 rounded-[10px] min-h-[52px] press ${
-                  isSelected ? 'bg-lavender/60' : isToday ? 'bg-peach/50' : ''
-                }`}
-              >
-                <span className={`text-[16px] ${isToday ? 'font-bold' : ''} ${date.getDay() === 0 ? 'text-red-400' : ''}`}>
-                  {date.getDate()}
-                </span>
-                <span className="flex gap-0.5 mt-1 flex-wrap justify-center max-w-[36px]">
-                  {dayEvents.slice(0, 4).map((e) => (
-                    <span key={e.id} className="w-1.5 h-1.5 rounded-full" style={{ background: members[e.owner]?.color || '#DDD6F3' }} />
-                  ))}
-                </span>
-              </button>
-            )
-          })}
+        <div className="flex gap-2">
+          <button onClick={() => moveMonth(-1)} aria-label="이전 달"
+            className="w-[38px] h-[38px] rounded-[11px] bg-card border border-line grid place-items-center text-[18px] font-bold press">‹</button>
+          <button onClick={() => moveMonth(1)} aria-label="다음 달"
+            className="w-[38px] h-[38px] rounded-[11px] bg-card border border-line grid place-items-center text-[18px] font-bold press">›</button>
         </div>
       </div>
 
-      <p className="text-[13px] text-ink/35 text-center mt-3">날짜를 누르면 일정을 보고 추가할 수 있어요</p>
+      <div className="grid grid-cols-7 gap-1.5 mb-2">
+        {DAY_NAMES.map((d, i) => (
+          <div key={d} className={`text-center text-[11px] font-bold py-1 ${i === 0 ? 'text-danger' : 'text-muted'}`}>{d}</div>
+        ))}
+      </div>
 
-      <BottomSheet open={!!selected} onClose={() => { setSelected(null); setAdding(false) }} title={selected ? formatShortDate(selected) : ''}>
-        <div className="flex flex-col gap-2 mb-4">
+      <div className="grid grid-cols-7 gap-1.5">
+        {grid.map((date, i) => {
+          if (!date) return <div key={`e${i}`} />
+          const ds = toDateStr(date)
+          const dayEvents = eventsByDate[ds] || []
+          const color = dayEvents.length > 0 ? (members[dayEvents[0].owner]?.color || '#FF6B35') : null
+          const isToday = ds === today
+          const isSelected = ds === selected
+          return (
+            <button
+              key={ds}
+              onClick={() => setSelected(ds)}
+              className="aspect-square rounded-full flex flex-col items-center justify-center press transition-transform"
+              style={{
+                background: color || (isSelected ? 'rgb(var(--ff-accent-soft))' : 'transparent'),
+                boxShadow: color ? `0 6px 14px ${hexToRgba(color, 0.4)}` : 'none',
+                outline: isToday ? '2px solid rgb(var(--ff-accent))' : 'none',
+                outlineOffset: 2
+              }}
+            >
+              <span className={`text-[14px] ${color ? 'text-white font-extrabold' : date.getDay() === 0 ? 'text-danger font-semibold' : 'font-semibold'}`}>
+                {date.getDate()}
+              </span>
+              {dayEvents.length > 1 && (
+                <span className="text-[9px] font-extrabold text-white/90 -mt-0.5">+{dayEvents.length - 1}</span>
+              )}
+            </button>
+          )
+        })}
+      </div>
+
+      <p className="text-[12px] font-semibold text-muted/70 text-center mt-4">
+        날짜를 누르면 일정을 보고 추가할 수 있어요 · 색 원은 가족 일정
+      </p>
+
+      <BottomSheet open={!!selected} onClose={() => { setSelected(null); setAdding(false) }} title={selected ? `${formatShortDate(selected)} 📌` : ''}>
+        <div className="flex flex-col gap-2.5 mb-4">
           {selectedEvents.length === 0 && !adding && (
-            <p className="text-[16px] text-ink/40 text-center py-4">일정이 없어요</p>
+            <p className="text-[14.5px] font-semibold text-muted text-center py-4">일정이 없어요</p>
           )}
           {selectedEvents.map((ev) => {
             const owner = members[ev.owner]
             return (
-              <div key={ev.id} className="flex items-center gap-3 bg-bg rounded-card px-4 py-3">
-                <span className="w-3 h-3 rounded-full shrink-0" style={{ background: owner?.color || '#DDD6F3' }} />
+              <div key={ev.id} className="flex items-center gap-3 bg-alt rounded-card px-3.5 py-3">
+                <span
+                  className="text-[11.5px] font-extrabold text-white px-2.5 py-1.5 rounded-full whitespace-nowrap shrink-0"
+                  style={{ background: owner?.color || 'rgb(var(--ff-accent))' }}
+                >
+                  {ev.time || '종일'}
+                </span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[17px] font-bold">{ev.title}</p>
-                  <p className="text-[14px] text-ink/50">
-                    {ev.time || '종일'} · {owner?.name || '가족'}
-                    {ev.memo && ` · ${ev.memo}`}
+                  <p className="text-[14.5px] font-bold">{ev.title}</p>
+                  <p className="text-[12px] font-semibold text-muted mt-0.5">
+                    {owner?.name || '가족'}{ev.memo && ` · ${ev.memo}`}
                   </p>
                 </div>
                 {ev.owner === user.uid && (
-                  <button onClick={() => removeEvent(ev)} className="text-[14px] text-ink/40 p-2 press">삭제</button>
+                  <button onClick={() => removeEvent(ev)} className="text-[13px] font-bold text-muted p-2 press">삭제</button>
                 )}
               </div>
             )
@@ -142,32 +171,41 @@ export default function Calendar({ events }) {
               value={form.title}
               onChange={(e) => setForm({ ...form, title: e.target.value })}
               placeholder="일정 제목 (예: 병원 예약)"
-              className="bg-bg border border-ink/15 rounded-btn px-4 py-3.5 text-[17px]"
+              className="bg-alt border-[1.5px] border-line rounded-btn px-4 py-3 text-[15px] font-semibold outline-none focus:border-accent"
             />
             <div className="flex items-center gap-3">
-              <label className="text-[15px] text-ink/60 shrink-0">시간 (비우면 종일)</label>
+              <label className="text-[13px] font-bold text-muted shrink-0">시간 (비우면 종일)</label>
               <input
                 type="time"
                 value={form.time}
                 onChange={(e) => setForm({ ...form, time: e.target.value })}
-                className="bg-bg border border-ink/15 rounded-btn px-3 py-2.5 text-[16px] flex-1"
+                className="bg-alt border-[1.5px] border-line rounded-btn px-3 py-2.5 text-[15px] font-semibold flex-1 outline-none focus:border-accent"
               />
             </div>
             <input
               value={form.memo}
               onChange={(e) => setForm({ ...form, memo: e.target.value })}
               placeholder="메모 (선택)"
-              className="bg-bg border border-ink/15 rounded-btn px-4 py-3.5 text-[16px]"
+              className="bg-alt border-[1.5px] border-line rounded-btn px-4 py-3 text-[15px] font-semibold outline-none focus:border-accent"
             />
             <div className="flex gap-2">
-              <button onClick={() => setAdding(false)} className="flex-1 bg-ink/5 rounded-btn py-3.5 text-[16px] font-bold press">취소</button>
-              <button onClick={addEvent} disabled={!form.title.trim()} className="flex-[2] bg-peach rounded-btn py-3.5 text-[16px] font-bold press disabled:opacity-40">
+              <button onClick={() => setAdding(false)} className="w-[90px] py-3.5 rounded-2xl border-[1.5px] border-line text-[14.5px] font-bold press">취소</button>
+              <button
+                onClick={addEvent}
+                disabled={!form.title.trim()}
+                className="flex-1 py-3.5 rounded-2xl text-[15px] font-extrabold text-white bg-accent press disabled:opacity-40"
+                style={{ boxShadow: '0 8px 20px rgb(var(--ff-accent) / .4)' }}
+              >
                 일정 추가
               </button>
             </div>
           </div>
         ) : (
-          <button onClick={() => setAdding(true)} className="w-full bg-peach rounded-btn py-4 text-[17px] font-bold press">
+          <button
+            onClick={() => setAdding(true)}
+            className="w-full py-4 rounded-2xl text-[15.5px] font-extrabold text-white bg-accent press"
+            style={{ boxShadow: '0 8px 20px rgb(var(--ff-accent) / .4)' }}
+          >
             ＋ 일정 추가
           </button>
         )}

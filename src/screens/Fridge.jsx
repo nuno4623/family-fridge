@@ -5,7 +5,7 @@ import {
 import { db } from '../firebase'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../components/Toast'
-import { CATEGORIES, STATUS } from '../utils'
+import { CATEGORIES, CAT_EMOJI, STATUS } from '../utils'
 
 const SEGMENTS = [
   { key: 'stock', label: '재고' },
@@ -14,12 +14,10 @@ const SEGMENTS = [
 ]
 
 export default function Fridge({ items }) {
-  const { user, familyId } = useAuth()
+  const { user, familyId, members } = useAuth()
   const showToast = useToast()
   const [seg, setSeg] = useState('stock')
-  const [name, setName] = useState('')
-  const [category, setCategory] = useState('냉장')
-  const inputRef = useRef(null)
+  const [draft, setDraft] = useState('')
   const pressTimer = useRef(null)
 
   const itemsCol = collection(db, 'families', familyId, 'items')
@@ -42,16 +40,14 @@ export default function Fridge({ items }) {
     [items]
   )
 
-  async function addItem() {
-    const n = name.trim()
+  async function addToBuy() {
+    const n = draft.trim()
     if (!n) return
-    setName('')
-    inputRef.current?.focus()
+    setDraft('')
     await addDoc(itemsCol, {
       name: n,
-      category,
-      // 재고 탭에서 추가하면 '충분', 사야 할 것/장보기 탭에서 추가하면 바로 목록에 뜨게
-      status: seg === 'stock' ? 'stocked' : seg === 'cart' ? 'buying' : 'out',
+      category: '기타',
+      status: 'out',
       memo: '',
       checkedInCart: false,
       updatedBy: user.uid,
@@ -118,7 +114,7 @@ export default function Fridge({ items }) {
     return (
       <button
         onClick={() => cycleStatus(item)}
-        className="rounded-full px-4 py-2.5 text-[15px] font-bold press shrink-0 min-w-[88px]"
+        className="rounded-[10px] px-3 py-2 text-[12px] font-extrabold text-white press shrink-0 whitespace-nowrap min-w-[76px]"
         style={{ background: s.color }}
       >
         {s.label}
@@ -129,7 +125,7 @@ export default function Fridge({ items }) {
   function ItemRow({ item, right }) {
     return (
       <div
-        className="flex items-center gap-3 bg-card rounded-card shadow-card px-4 py-2.5 min-h-[56px] select-none"
+        className="flex items-center gap-3 bg-card rounded-card border border-line shadow-card px-3.5 py-2.5 min-h-[56px] select-none"
         onTouchStart={() => startPress(item)}
         onTouchEnd={endPress}
         onTouchMove={endPress}
@@ -137,9 +133,14 @@ export default function Fridge({ items }) {
         onMouseUp={endPress}
         onMouseLeave={endPress}
       >
+        <span className="w-11 h-11 rounded-[13px] bg-alt grid place-items-center text-[23px] shrink-0">
+          {CAT_EMOJI[item.category] || '🧺'}
+        </span>
         <div className="flex-1 min-w-0">
-          <p className="text-[17px] font-medium truncate">{item.name}</p>
-          {item.memo && <p className="text-[13px] text-ink/50 truncate">{item.memo}</p>}
+          <p className="text-[15px] font-bold truncate">{item.name}</p>
+          <p className="text-[12px] font-semibold text-muted truncate mt-0.5">
+            {members[item.updatedBy]?.name || '가족'}{item.memo ? ` · ${item.memo}` : ''}
+          </p>
         </div>
         {right}
       </div>
@@ -148,41 +149,48 @@ export default function Fridge({ items }) {
 
   return (
     <div className="max-w-lg mx-auto flex flex-col min-h-full">
-      <div className="px-5 pt-6 pb-3 sticky top-0 bg-bg z-10">
-        <h1 className="text-[24px] font-bold mb-3">🥕 냉장고</h1>
-        <div className="flex bg-ink/5 rounded-btn p-1 gap-1">
-          {SEGMENTS.map((s) => (
-            <button
-              key={s.key}
-              onClick={() => setSeg(s.key)}
-              className={`flex-1 py-2.5 rounded-[9px] text-[15px] font-bold press relative ${
-                seg === s.key ? 'bg-card shadow-card' : 'text-ink/45'
-              }`}
-            >
-              {s.label}
-              {s.key === 'cart' && cartList.length > 0 && (
-                <span className="absolute top-1 right-1.5 min-w-[18px] h-[18px] px-1 bg-peach rounded-full text-[11px] flex items-center justify-center font-bold">
-                  {cartList.length}
-                </span>
-              )}
-            </button>
-          ))}
+      <div className="px-5 pt-5 pb-3 sticky top-0 bg-bg z-10">
+        <h1 className="text-[25px] font-extrabold tracking-tight mb-1">냉장고 🥕</h1>
+        <p className="text-[13.5px] font-semibold text-muted mb-4">가족과 실시간으로 공유 중</p>
+        <div className="flex gap-2 overflow-x-auto ff-scroll -mx-5 px-5 pb-1">
+          {SEGMENTS.map((s) => {
+            const on = seg === s.key
+            return (
+              <button
+                key={s.key}
+                onClick={() => setSeg(s.key)}
+                className={`shrink-0 px-4 py-2.5 rounded-full text-[13.5px] font-extrabold press relative whitespace-nowrap ${
+                  on ? 'bg-accent text-white' : 'bg-card text-ink shadow-card border border-line'
+                }`}
+                style={on ? { boxShadow: '0 6px 16px rgb(var(--ff-accent) / .35)' } : undefined}
+              >
+                {s.label}
+                {s.key === 'cart' && cartList.length > 0 && (
+                  <span className={`ml-1.5 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[11px] font-extrabold ${
+                    on ? 'bg-white text-accent' : 'bg-accent text-white'
+                  }`}>
+                    {cartList.length}
+                  </span>
+                )}
+              </button>
+            )
+          })}
         </div>
       </div>
 
-      <div className="px-5 pb-40 flex-1">
+      <div className="px-5 pb-32 flex-1">
         {seg === 'stock' && (
           <div className="flex flex-col gap-5">
             {(items || []).length === 0 && (
-              <p className="text-center text-[16px] text-ink/40 py-10">
-                아직 등록된 식재료가 없어요.<br />아래에서 첫 항목을 추가해 보세요!
+              <p className="text-center text-[14.5px] font-semibold text-muted py-10">
+                아직 등록된 식재료가 없어요.<br />아래 ＋ 버튼으로 첫 항목을 추가해 보세요!
               </p>
             )}
             {CATEGORIES.map((cat) =>
               byCategory[cat].length > 0 ? (
                 <section key={cat}>
-                  <h2 className="text-[15px] font-bold text-ink/50 mb-2">{cat}</h2>
-                  <div className="flex flex-col gap-2">
+                  <h2 className="text-[13px] font-extrabold text-muted mb-2">{CAT_EMOJI[cat]} {cat}</h2>
+                  <div className="flex flex-col gap-2.5">
                     {byCategory[cat].map((item) => (
                       <ItemRow key={item.id} item={item} right={<StatusPill item={item} />} />
                     ))}
@@ -190,16 +198,31 @@ export default function Fridge({ items }) {
                 </section>
               ) : null
             )}
-            <p className="text-[13px] text-ink/35 text-center">
-              상태 버튼을 누르면 충분 → 곧 떨어짐 → 떨어짐 순으로 바뀌어요 · 길게 누르면 삭제
+            <p className="text-[12px] font-semibold text-muted/70 text-center">
+              상태 버튼: 충분 → 곧 떨어짐 → 떨어짐 순환 · 길게 누르면 삭제
             </p>
           </div>
         )}
 
         {seg === 'buy' && (
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2.5">
+            <div className="flex gap-2 p-1.5 rounded-2xl bg-card border border-line mb-1">
+              <input
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && addToBuy()}
+                placeholder="살 것을 입력하세요…"
+                className="flex-1 min-w-0 border-none outline-none bg-transparent text-[14.5px] font-semibold px-2.5 py-2"
+              />
+              <button
+                onClick={addToBuy}
+                className="rounded-[11px] px-4 text-[14px] font-extrabold text-white bg-accent press shrink-0"
+              >
+                추가
+              </button>
+            </div>
             {buyList.length === 0 && cartList.length === 0 && (
-              <p className="text-center text-[16px] text-ink/40 py-10">사야 할 게 없어요 ✅</p>
+              <p className="text-center text-[14.5px] font-semibold text-muted py-10">사야 할 게 없어요 ✅</p>
             )}
             {buyList.map((item) => (
               <ItemRow
@@ -210,7 +233,8 @@ export default function Fridge({ items }) {
                     <StatusPill item={item} />
                     <button
                       onClick={() => toCart(item)}
-                      className="bg-peach rounded-full px-4 py-2.5 text-[15px] font-bold press shrink-0"
+                      className="rounded-[10px] px-3 py-2 text-[12px] font-extrabold text-white bg-accent press shrink-0"
+                      style={{ boxShadow: '0 4px 10px rgb(var(--ff-accent) / .4)' }}
                     >
                       담기
                     </button>
@@ -219,7 +243,7 @@ export default function Fridge({ items }) {
               />
             ))}
             {cartList.length > 0 && (
-              <button onClick={() => setSeg('cart')} className="mt-3 bg-peach/50 rounded-card px-4 py-3.5 text-[15px] font-medium press text-left">
+              <button onClick={() => setSeg('cart')} className="mt-2 bg-accent-soft rounded-card px-4 py-3.5 text-[13.5px] font-bold press text-left">
                 🛒 장바구니에 {cartList.length}개 담겨 있어요 → 장보기 모드로
               </button>
             )}
@@ -227,9 +251,9 @@ export default function Fridge({ items }) {
         )}
 
         {seg === 'cart' && (
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2.5">
             {cartList.length === 0 && (
-              <p className="text-center text-[16px] text-ink/40 py-10">
+              <p className="text-center text-[14.5px] font-semibold text-muted py-10">
                 장바구니가 비어 있어요.<br />"사야 할 것"에서 담아 주세요.
               </p>
             )}
@@ -237,26 +261,30 @@ export default function Fridge({ items }) {
               <button
                 key={item.id}
                 onClick={() => toggleChecked(item)}
-                className="flex items-center gap-4 bg-card rounded-card shadow-card px-4 py-4 min-h-[64px] press text-left"
+                className={`flex items-center gap-3.5 rounded-card border border-line px-3.5 py-3.5 min-h-[60px] press text-left ${
+                  item.checkedInCart ? 'bg-alt opacity-60' : 'bg-card shadow-card'
+                }`}
               >
                 <span
-                  className={`w-8 h-8 rounded-[10px] border-2 flex items-center justify-center text-[18px] shrink-0 transition-colors ${
-                    item.checkedInCart ? 'bg-mint border-mint' : 'border-ink/25'
+                  className={`w-6 h-6 rounded-lg grid place-items-center text-[14px] font-extrabold text-white shrink-0 ${
+                    item.checkedInCart ? 'bg-accent' : 'border-2 border-line bg-transparent'
                   }`}
                 >
                   {item.checkedInCart ? '✓' : ''}
                 </span>
-                <span className={`text-[19px] font-medium flex-1 ${item.checkedInCart ? 'line-through text-ink/35' : ''}`}>
+                <span className="text-[22px]">{CAT_EMOJI[item.category] || '🧺'}</span>
+                <span className={`text-[15px] font-bold flex-1 ${item.checkedInCart ? 'line-through' : ''}`}>
                   {item.name}
                 </span>
-                {item.memo && <span className="text-[14px] text-ink/45">{item.memo}</span>}
+                {item.memo && <span className="text-[12px] font-semibold text-muted">{item.memo}</span>}
               </button>
             ))}
             {cartList.length > 0 && (
               <button
                 onClick={finishShopping}
                 disabled={!cartList.some((i) => i.checkedInCart)}
-                className="mt-4 bg-peach rounded-card py-4 text-[18px] font-bold shadow-card press disabled:opacity-40"
+                className="mt-4 py-4 rounded-2xl text-[15.5px] font-extrabold text-white bg-accent press disabled:opacity-40"
+                style={{ boxShadow: '0 8px 20px rgb(var(--ff-accent) / .4)' }}
               >
                 장보기 완료 ({cartList.filter((i) => i.checkedInCart).length}개 냉장고에 넣기)
               </button>
@@ -264,31 +292,6 @@ export default function Fridge({ items }) {
           </div>
         )}
       </div>
-
-      {seg !== 'cart' && (
-        <div className="fixed bottom-[calc(56px+env(safe-area-inset-bottom))] left-0 right-0 bg-bg/95 backdrop-blur border-t border-ink/10 px-4 py-3 z-30">
-          <div className="max-w-lg mx-auto flex gap-2">
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="bg-card border border-ink/15 rounded-btn px-2 py-3 text-[15px] font-medium shrink-0"
-            >
-              {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-            </select>
-            <input
-              ref={inputRef}
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && addItem()}
-              placeholder={seg === 'stock' ? '식재료 이름 (예: 계란)' : '살 것 추가 (예: 두부)'}
-              className="flex-1 min-w-0 bg-card border border-ink/15 rounded-btn px-4 py-3 text-[16px]"
-            />
-            <button onClick={addItem} className="bg-peach rounded-btn px-5 text-[16px] font-bold press shrink-0">
-              추가
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

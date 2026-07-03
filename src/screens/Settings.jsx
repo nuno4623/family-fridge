@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { doc, updateDoc } from 'firebase/firestore'
 import { db } from '../firebase'
 import { useAuth } from '../contexts/AuthContext'
+import { useTheme, THEMES, FONTS, SIZES } from '../theme'
 import { useToast } from '../components/Toast'
 import { enablePush, disablePush } from '../notifications'
 import { MEMBER_COLORS, storage } from '../utils'
@@ -10,7 +11,7 @@ function Toggle({ on, onChange }) {
   return (
     <button
       onClick={onChange}
-      className={`w-[52px] h-8 rounded-full transition-colors relative shrink-0 ${on ? 'bg-mint' : 'bg-ink/15'}`}
+      className={`w-[52px] h-8 rounded-full transition-colors relative shrink-0 ${on ? 'bg-accent' : 'bg-line'}`}
       role="switch"
       aria-checked={on}
     >
@@ -19,8 +20,18 @@ function Toggle({ on, onChange }) {
   )
 }
 
+function Section({ title, children }) {
+  return (
+    <section className="bg-card rounded-tile border border-line shadow-card p-4 mb-4">
+      <h2 className="text-[13px] font-extrabold text-muted mb-3">{title}</h2>
+      {children}
+    </section>
+  )
+}
+
 export default function Settings({ onClose }) {
   const { user, profile, family, logout } = useAuth()
+  const { prefs, setPrefs } = useTheme()
   const showToast = useToast()
   const [name, setName] = useState(profile?.name || '')
   const [busy, setBusy] = useState(false)
@@ -64,43 +75,103 @@ export default function Settings({ onClose }) {
 
   return (
     <div className="fixed inset-0 bg-bg z-50 overflow-y-auto">
-      <div className="max-w-lg mx-auto px-5 pt-6 pb-10">
+      <div className="max-w-lg mx-auto px-5 pt-5 pb-10">
         <header className="flex items-center justify-between mb-6">
-          <h1 className="text-[24px] font-bold">⚙️ 설정</h1>
-          <button onClick={onClose} className="text-[17px] font-bold text-ink/60 p-2 press">닫기</button>
+          <h1 className="text-[25px] font-extrabold tracking-tight">설정 ⚙️</h1>
+          <button onClick={onClose} className="text-[14.5px] font-extrabold text-accent p-2 press">닫기</button>
         </header>
 
-        <section className="bg-card rounded-card shadow-card p-4 mb-4">
-          <h2 className="text-[15px] font-bold text-ink/50 mb-3">내 정보</h2>
+        <Section title="테마">
+          <div className="flex gap-2 flex-wrap">
+            {Object.entries(THEMES).map(([key, t]) => {
+              const on = prefs.theme === key
+              return (
+                <button
+                  key={key}
+                  onClick={() => setPrefs({ theme: key })}
+                  className={`flex items-center gap-2 pl-2.5 pr-3.5 py-2 rounded-full border-[1.5px] press ${
+                    on ? 'border-accent bg-accent-soft' : 'border-line bg-alt'
+                  }`}
+                >
+                  <span
+                    className="w-4 h-4 rounded-full shrink-0"
+                    style={{ background: t.dot, boxShadow: on ? `0 0 0 3px ${t.dot}33` : 'none' }}
+                  />
+                  <span className={`text-[13px] font-bold ${on ? '' : 'text-muted'}`}>{t.label}</span>
+                </button>
+              )
+            })}
+          </div>
+        </Section>
+
+        <Section title="가독성">
+          <p className="text-[13.5px] font-bold mb-2">글꼴</p>
+          <div className="flex gap-2 mb-4">
+            {Object.entries(FONTS).map(([key, f]) => {
+              const on = prefs.font === key
+              return (
+                <button
+                  key={key}
+                  onClick={() => setPrefs({ font: key })}
+                  className={`flex-1 py-2.5 rounded-[13px] text-[13.5px] font-bold press border-[1.5px] ${
+                    on ? 'bg-accent text-white border-accent' : 'bg-alt text-muted border-line'
+                  }`}
+                  style={{ fontFamily: f.stack }}
+                >
+                  {f.label}
+                </button>
+              )
+            })}
+          </div>
+          <p className="text-[13.5px] font-bold mb-2">글씨 크기</p>
+          <div className="flex gap-2">
+            {Object.entries(SIZES).map(([key, s]) => {
+              const on = prefs.size === key
+              return (
+                <button
+                  key={key}
+                  onClick={() => setPrefs({ size: key })}
+                  className={`flex-1 py-2.5 rounded-[13px] text-[13.5px] font-bold press border-[1.5px] ${
+                    on ? 'bg-accent text-white border-accent' : 'bg-alt text-muted border-line'
+                  }`}
+                >
+                  {s.label}
+                </button>
+              )
+            })}
+          </div>
+          <p className="text-[12px] font-semibold text-muted mt-3">테마·글꼴·크기는 이 기기에만 적용돼요</p>
+        </Section>
+
+        <Section title="내 정보">
           <div className="flex gap-2 mb-4">
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="flex-1 min-w-0 bg-bg border border-ink/15 rounded-btn px-4 py-3 text-[17px]"
+              className="flex-1 min-w-0 bg-alt border-[1.5px] border-line rounded-btn px-4 py-3 text-[15px] font-semibold outline-none focus:border-accent"
               placeholder="앱에서 쓸 이름"
             />
-            <button onClick={saveName} className="bg-peach rounded-btn px-4 text-[15px] font-bold press shrink-0">저장</button>
+            <button onClick={saveName} className="rounded-btn px-4 text-[14px] font-extrabold text-white bg-accent press shrink-0">저장</button>
           </div>
-          <p className="text-[15px] text-ink/60 mb-2">내 색상 (캘린더 · 메모에 표시)</p>
+          <p className="text-[13.5px] font-bold mb-2">내 색상 (캘린더 · 메모에 표시)</p>
           <div className="flex gap-3">
             {MEMBER_COLORS.map((c) => (
               <button
                 key={c}
                 onClick={() => setColor(c)}
-                className={`w-11 h-11 rounded-full press border-2 ${profile?.color === c ? 'border-ink/60 scale-110' : 'border-transparent'}`}
+                className={`w-11 h-11 rounded-full press border-[3px] ${profile?.color === c ? 'border-ink/40 scale-110' : 'border-transparent'}`}
                 style={{ background: c }}
                 aria-label={c}
               />
             ))}
           </div>
-        </section>
+        </Section>
 
-        <section className="bg-card rounded-card shadow-card p-4 mb-4">
-          <h2 className="text-[15px] font-bold text-ink/50 mb-1">알림</h2>
-          <div className="flex items-center justify-between py-3 border-b border-ink/5">
+        <Section title="알림">
+          <div className="flex items-center justify-between py-3 border-b border-line">
             <div>
-              <p className="text-[17px] font-medium">이 기기에서 푸시 받기</p>
-              <p className="text-[13px] text-ink/45">아이폰은 홈 화면에 추가한 앱에서만 돼요</p>
+              <p className="text-[15px] font-bold">이 기기에서 푸시 받기</p>
+              <p className="text-[12px] font-semibold text-muted">아이폰은 홈 화면에 추가한 앱에서만 돼요</p>
             </div>
             <Toggle on={pushEnabled} onChange={busy ? () => {} : togglePush} />
           </div>
@@ -109,28 +180,27 @@ export default function Settings({ onClose }) {
             ['event', '📅 새 일정'],
             ['memo', '📝 새 메모']
           ].map(([key, label]) => (
-            <div key={key} className="flex items-center justify-between py-3 border-b border-ink/5 last:border-0">
-              <p className="text-[17px] font-medium">{label}</p>
+            <div key={key} className="flex items-center justify-between py-3 border-b border-line last:border-0">
+              <p className="text-[15px] font-bold">{label}</p>
               <Toggle on={!!notify[key]} onChange={() => toggleNotify(key)} />
             </div>
           ))}
-        </section>
+        </Section>
 
-        <section className="bg-card rounded-card shadow-card p-4 mb-4">
-          <h2 className="text-[15px] font-bold text-ink/50 mb-2">가족 초대</h2>
-          <p className="text-[15px] text-ink/60 mb-3">가족에게 이 코드를 알려 주세요</p>
+        <Section title="가족 초대">
+          <p className="text-[13.5px] font-semibold text-muted mb-3">가족에게 이 코드를 알려 주세요</p>
           <button
             onClick={() => {
               navigator.clipboard?.writeText(family?.inviteCode || '')
               showToast('초대코드를 복사했어요')
             }}
-            className="w-full bg-butter rounded-btn py-4 text-[26px] font-bold tracking-[0.3em] press"
+            className="w-full bg-accent-soft rounded-btn py-4 text-[26px] font-extrabold tracking-[0.3em] press"
           >
             {family?.inviteCode || '------'}
           </button>
-        </section>
+        </Section>
 
-        <button onClick={logout} className="w-full bg-card border border-ink/15 rounded-btn py-4 text-[16px] font-bold text-ink/60 shadow-card press">
+        <button onClick={logout} className="w-full bg-card border-[1.5px] border-line rounded-btn py-4 text-[14.5px] font-extrabold text-muted press">
           로그아웃
         </button>
       </div>

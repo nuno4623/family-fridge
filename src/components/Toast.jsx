@@ -23,7 +23,7 @@ export function ToastProvider({ children }) {
         {toasts.map((t) => (
           <div
             key={t.id}
-            className="bg-ink text-bg text-[16px] font-medium px-5 py-3 rounded-full shadow-lg animate-toast-in max-w-full"
+            className="bg-ink text-white text-[14.5px] font-semibold px-5 py-3 rounded-full shadow-lg animate-toast-in max-w-full"
           >
             {t.text}
           </div>
