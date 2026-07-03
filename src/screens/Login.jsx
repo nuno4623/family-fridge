@@ -27,9 +27,9 @@ export default function Login() {
       >
         🧊
       </div>
-      <h1 className="text-[28px] font-extrabold tracking-tight mb-2">우리 집 냉장고</h1>
+      <h1 className="text-[28px] font-extrabold tracking-tight mb-2">식구들</h1>
       <p className="text-[15px] font-semibold text-muted mb-10 text-center">
-        가족과 함께 쓰는<br />식재료 · 일정 · 메모
+        한솥밥 먹는 우리 가족의<br />일정 · 냉장고 · 메모
       </p>
       <button
         onClick={handleLogin}

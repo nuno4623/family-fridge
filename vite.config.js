@@ -12,9 +12,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       injectRegister: 'auto',
       manifest: {
-        name: '우리집 냉장고',
-        short_name: '냉장고',
-        description: '가족 공유 식재료 · 캘린더 · 메모',
+        name: '식구들',
+        short_name: '식구들',
+        description: '우리 가족 일정 · 냉장고 · 메모 공유',
         lang: 'ko',
         start_url: '/',
         display: 'standalone',

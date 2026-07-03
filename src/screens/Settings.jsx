@@ -201,7 +201,7 @@ export default function Settings({ onClose }) {
           <button
             onClick={async () => {
               const text = [
-                `🧊 '${family?.name || '우리집'}' 냉장고 앱에 초대해요!`,
+                `🧊 우리 가족 앱 '식구들'에 초대해요!`,
                 '',
                 `1. 링크 열기: ${location.origin}`,
                 '2. 구글로 로그인',

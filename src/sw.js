@@ -21,7 +21,7 @@ try {
   })
   const messaging = getMessaging(app)
   onBackgroundMessage(messaging, (payload) => {
-    const title = payload.notification?.title || payload.data?.title || '우리집 냉장고'
+    const title = payload.notification?.title || payload.data?.title || '식구들'
     const body = payload.notification?.body || payload.data?.body || ''
     self.registration.showNotification(title, {
       body,

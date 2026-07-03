@@ -65,7 +65,7 @@ exports.onItemWrite = onDocumentWritten('families/{familyId}/items/{itemId}', as
     event.params.familyId,
     after.updatedBy,
     'shopping',
-    '🛒 우리집 냉장고',
+    '🛒 식구들',
     `${name}님이 '${after.name}' 떨어짐 표시했어요`
   )
 })

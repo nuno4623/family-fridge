@@ -79,7 +79,7 @@ export default function Home({ items, events, memos, onGoTab, onOpenSettings }) 
           <p className="text-[13.5px] font-semibold text-muted">
             안녕하세요, {profile?.name || ''}님 👋 {greeting()}
           </p>
-          <h1 className="text-[25px] font-extrabold tracking-tight">우리 집 냉장고</h1>
+          <h1 className="text-[25px] font-extrabold tracking-tight">식구들 🧊</h1>
         </div>
         <button
           onClick={onOpenSettings}
