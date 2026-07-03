@@ -1,0 +1,295 @@
+<title>우리집 냉장고 — 디자인 시스템</title>
+<style>
+:root{--bg:#FBFAF7;--card:#FFFFFF;--ink:#4A4238;--peach:#FFD9C8;--butter:#FFF3C4;--mint:#CDEBDD;--rose:#F9CFD6;--lavender:#DDD6F3;--sky:#CFE5F4}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Pretendard Variable',Pretendard,-apple-system,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:17px;line-height:1.5}
+.card{background:var(--card);border-radius:16px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.pill{display:inline-flex;align-items:center;justify-content:center;border-radius:999px;padding:10px 16px;font-size:15px;font-weight:700;border:none;min-width:88px;font-family:inherit;color:var(--ink)}
+.btn{border:none;border-radius:12px;font-family:inherit;font-weight:700;font-size:16px;color:var(--ink);padding:14px 20px;cursor:pointer}
+.dot{display:inline-block;width:12px;height:12px;border-radius:999px;flex-shrink:0}
+.muted{color:rgba(74,66,56,.5)}
+.row{display:flex;align-items:center;gap:12px}
+.col{display:flex;flex-direction:column;gap:12px}
+
+body{padding:32px 20px;max-width:960px;margin:0 auto}
+h1{font-size:26px;font-weight:700}
+h2{font-size:15px;font-weight:700;color:rgba(74,66,56,.5);margin:36px 0 14px;letter-spacing:.04em}
+.ds-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:20px}
+.ds-card{background:var(--card);border-radius:16px;box-shadow:0 1px 3px rgba(0,0,0,.06);overflow:hidden;border:1px solid rgba(74,66,56,.06)}
+.ds-card-head{padding:14px 18px;border-bottom:1px solid rgba(74,66,56,.08)}
+.ds-card-head b{font-size:15px}
+.ds-card-head span{display:block;font-size:12px;color:rgba(74,66,56,.5);margin-top:2px}
+.ds-card-body{padding:20px 18px;background:var(--bg)}
+</style>
+<h1>🧊 우리집 냉장고 — 디자인 시스템</h1>
+<p class="muted" style="font-size:14px;margin-top:6px">컨셉: 냉장고 문에 자석으로 붙여둔 메모지 · Pretendard · 본문 17px+ · 터치 48px+ · 라이트 전용</p>
+
+<h2>파운데이션</h2>
+<div class="ds-grid">
+
+<div class="ds-card">
+  <div class="ds-card-head"><b>컬러 토큰</b><span>냉장고 문에 붙인 것들 — 웜 화이트 + 파스텔</span></div>
+  <div class="ds-card-body">
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+  
+  <div class="card" style="overflow:hidden">
+    <div style="height:56px;background:#FBFAF7;"></div>
+    <div style="padding:10px 12px">
+      <div style="font-weight:700;font-size:14px">--bg</div>
+      <div class="muted" style="font-size:12px">#FBFAF7 · 배경 · 냉장고 문</div>
+    </div>
+  </div>
+  <div class="card" style="overflow:hidden">
+    <div style="height:56px;background:#FFFFFF;border-bottom:1px solid rgba(74,66,56,.08)"></div>
+    <div style="padding:10px 12px">
+      <div style="font-weight:700;font-size:14px">--card</div>
+      <div class="muted" style="font-size:12px">#FFFFFF · 카드 · 종이</div>
+    </div>
+  </div>
+  <div class="card" style="overflow:hidden">
+    <div style="height:56px;background:#4A4238;"></div>
+    <div style="padding:10px 12px">
+      <div style="font-weight:700;font-size:14px">--ink</div>
+      <div class="muted" style="font-size:12px">#4A4238 · 글자 (순검정 금지)</div>
+    </div>
+  </div>
+  <div class="card" style="overflow:hidden">
+    <div style="height:56px;background:#FFD9C8;"></div>
+    <div style="padding:10px 12px">
+      <div style="font-weight:700;font-size:14px">--peach</div>
+      <div class="muted" style="font-size:12px">#FFD9C8 · 주 액센트 · CTA</div>
+    </div>
+  </div>
+  <div class="card" style="overflow:hidden">
+    <div style="height:56px;background:#FFF3C4;"></div>
+    <div style="padding:10px 12px">
+      <div style="font-weight:700;font-size:14px">--butter</div>
+      <div class="muted" style="font-size:12px">#FFF3C4 · 포스트잇 · '곧 떨어짐'</div>
+    </div>
+  </div>
+  <div class="card" style="overflow:hidden">
+    <div style="height:56px;background:#CDEBDD;"></div>
+    <div style="padding:10px 12px">
+      <div style="font-weight:700;font-size:14px">--mint</div>
+      <div class="muted" style="font-size:12px">#CDEBDD · '충분' · 성공</div>
+    </div>
+  </div>
+  <div class="card" style="overflow:hidden">
+    <div style="height:56px;background:#F9CFD6;"></div>
+    <div style="padding:10px 12px">
+      <div style="font-weight:700;font-size:14px">--rose</div>
+      <div class="muted" style="font-size:12px">#F9CFD6 · '떨어짐' · 멤버1</div>
+    </div>
+  </div>
+  <div class="card" style="overflow:hidden">
+    <div style="height:56px;background:#DDD6F3;"></div>
+    <div style="padding:10px 12px">
+      <div style="font-weight:700;font-size:14px">--lavender</div>
+      <div class="muted" style="font-size:12px">#DDD6F3 · 캘린더 · 멤버2</div>
+    </div>
+  </div>
+  <div class="card" style="overflow:hidden">
+    <div style="height:56px;background:#CFE5F4;"></div>
+    <div style="padding:10px 12px">
+      <div style="font-weight:700;font-size:14px">--sky</div>
+      <div class="muted" style="font-size:12px">#CFE5F4 · 멤버3</div>
+    </div>
+  </div>
+</div></div>
+</div>
+<div class="ds-card">
+  <div class="ds-card-head"><b>타이포그래피</b><span>Pretendard Variable · 본문 17px 이상 (시어머니 가독성)</span></div>
+  <div class="ds-card-body">
+<div class="col" style="gap:20px">
+  <div><div style="font-size:24px;font-weight:700">7월 3일 금요일</div><div class="muted" style="font-size:12px">화면 제목 · 24px · 700</div></div>
+  <div><div style="font-size:19px;font-weight:700">바텀시트 제목</div><div class="muted" style="font-size:12px">19px · 700</div></div>
+  <div><div style="font-size:17px;font-weight:500">항목 이름 · 본문은 17px 아래로 내려가지 않아요</div><div class="muted" style="font-size:12px">본문 · 17px · 500</div></div>
+  <div><div style="font-size:15px;font-weight:700">버튼 · 상태 라벨</div><div class="muted" style="font-size:12px">15px · 700</div></div>
+  <div><div style="font-size:13px;color:rgba(74,66,56,.5)">보조 설명 · 2시간 전</div><div class="muted" style="font-size:12px">캡션 · 13px</div></div>
+</div></div>
+</div>
+</div>
+<h2>냉장고</h2>
+<div class="ds-grid">
+
+<div class="ds-card">
+  <div class="ds-card-head"><b>상태 알약</b><span>탭 한 번으로 순환: 충분 → 곧 떨어짐 → 떨어짐</span></div>
+  <div class="ds-card-body">
+<div class="row" style="flex-wrap:wrap">
+  <button class="pill" style="background:var(--mint)">충분</button>
+  <button class="pill" style="background:var(--butter)">곧 떨어짐</button>
+  <button class="pill" style="background:var(--rose)">떨어짐</button>
+  <button class="pill" style="background:var(--peach)">장바구니</button>
+</div>
+<p class="muted" style="font-size:13px;margin-top:14px">누르면 scale(0.96)으로 살짝 눌립니다</p></div>
+</div>
+<div class="ds-card">
+  <div class="ds-card-head"><b>식재료 행</b><span>재고 목록 / 사야 할 것 (담기 버튼)</span></div>
+  <div class="ds-card-body">
+<div class="col">
+  <div class="card row" style="padding:12px 16px;min-height:56px">
+    <div style="flex:1"><div style="font-weight:500">계란</div><div class="muted" style="font-size:13px">30구짜리로</div></div>
+    <button class="pill" style="background:var(--rose)">떨어짐</button>
+  </div>
+  <div class="card row" style="padding:12px 16px;min-height:56px">
+    <div style="flex:1;font-weight:500">우유</div>
+    <button class="pill" style="background:var(--butter)">곧 떨어짐</button>
+    <button class="pill" style="background:var(--peach);min-width:0">담기</button>
+  </div>
+</div></div>
+</div>
+<div class="ds-card">
+  <div class="ds-card-head"><b>장보기 모드</b><span>마트에서 쓰는 큰 체크박스 + 일괄 완료</span></div>
+  <div class="ds-card-body">
+<div class="col">
+  <div class="card row" style="padding:16px;min-height:64px;gap:16px">
+    <span style="width:32px;height:32px;border-radius:10px;background:var(--mint);display:flex;align-items:center;justify-content:center;font-size:18px">✓</span>
+    <span style="font-size:19px;font-weight:500;text-decoration:line-through;color:rgba(74,66,56,.35);flex:1">두부</span>
+  </div>
+  <div class="card row" style="padding:16px;min-height:64px;gap:16px">
+    <span style="width:32px;height:32px;border-radius:10px;border:2px solid rgba(74,66,56,.25)"></span>
+    <span style="font-size:19px;font-weight:500;flex:1">참기름</span>
+    <span class="muted" style="font-size:14px">작은 병</span>
+  </div>
+  <button class="btn" style="background:var(--peach);font-size:18px;margin-top:8px">장보기 완료 (1개 냉장고에 넣기)</button>
+</div></div>
+</div>
+<div class="ds-card">
+  <div class="ds-card-head"><b>세그먼트 탭</b><span>재고 / 사야 할 것 / 장보기 모드 (+뱃지)</span></div>
+  <div class="ds-card-body">
+<div style="display:flex;background:rgba(74,66,56,.05);border-radius:12px;padding:4px;gap:4px">
+  <div style="flex:1;text-align:center;padding:10px;border-radius:9px;background:var(--card);box-shadow:0 1px 3px rgba(0,0,0,.06);font-weight:700;font-size:15px">재고</div>
+  <div style="flex:1;text-align:center;padding:10px;font-weight:700;font-size:15px;color:rgba(74,66,56,.45)">사야 할 것</div>
+  <div style="flex:1;text-align:center;padding:10px;font-weight:700;font-size:15px;color:rgba(74,66,56,.45);position:relative">장보기 모드
+    <span style="position:absolute;top:4px;right:6px;min-width:18px;height:18px;background:var(--peach);border-radius:999px;font-size:11px;display:inline-flex;align-items:center;justify-content:center;color:var(--ink)">2</span>
+  </div>
+</div></div>
+</div>
+</div>
+<h2>캘린더 · 메모</h2>
+<div class="ds-grid">
+
+<div class="ds-card">
+  <div class="ds-card-head"><b>일정 카드</b><span>멤버 색상 점으로 누구 일정인지 구분</span></div>
+  <div class="ds-card-body">
+<div class="col">
+  <div class="card row" style="padding:14px 16px">
+    <span class="dot" style="background:var(--mint)"></span>
+    <div style="flex:1"><div style="font-weight:700">병원 예약</div><div class="muted" style="font-size:14px">오늘 · 14:00 · 어머님</div></div>
+  </div>
+  <div class="card row" style="padding:14px 16px">
+    <span class="dot" style="background:var(--rose)"></span>
+    <div style="flex:1"><div style="font-weight:700">마트 같이 가기</div><div class="muted" style="font-size:14px">내일 · 10:30 · 지선</div></div>
+  </div>
+</div></div>
+</div>
+<div class="ds-card">
+  <div class="ds-card-head"><b>포스트잇 메모</b><span>자석 도트(멤버 색) + 4색 + 고정 핀</span></div>
+  <div class="ds-card-body">
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+  
+  <div style="background:var(--butter);border-radius:16px;box-shadow:0 1px 3px rgba(0,0,0,.06);padding:20px 16px 12px;position:relative">
+    <span style="position:absolute;top:8px;left:50%;transform:translateX(-50%);width:14px;height:14px;border-radius:999px;background:var(--rose);border:2px solid rgba(255,255,255,.8);box-shadow:0 1px 2px rgba(0,0,0,.15)"></span>
+    <span style="position:absolute;top:6px;right:8px;font-size:14px">📌</span>
+    <div style="font-size:16px">분리수거는 목요일 아침! 🗑</div>
+    <div class="muted" style="font-size:12px;margin-top:8px">지선 · 3일 전</div>
+  </div>
+  <div style="background:var(--rose);border-radius:16px;box-shadow:0 1px 3px rgba(0,0,0,.06);padding:20px 16px 12px;position:relative">
+    <span style="position:absolute;top:8px;left:50%;transform:translateX(-50%);width:14px;height:14px;border-radius:999px;background:var(--mint);border:2px solid rgba(255,255,255,.8);box-shadow:0 1px 2px rgba(0,0,0,.15)"></span>
+    
+    <div style="font-size:16px">고등어 손질해서 냉동칸에</div>
+    <div class="muted" style="font-size:12px;margin-top:8px">어머님 · 6시간 전</div>
+  </div>
+  <div style="background:var(--mint);border-radius:16px;box-shadow:0 1px 3px rgba(0,0,0,.06);padding:20px 16px 12px;position:relative">
+    <span style="position:absolute;top:8px;left:50%;transform:translateX(-50%);width:14px;height:14px;border-radius:999px;background:var(--rose);border:2px solid rgba(255,255,255,.8);box-shadow:0 1px 2px rgba(0,0,0,.15)"></span>
+    
+    <div style="font-size:16px">주말에 다 같이 장보러 가요~</div>
+    <div class="muted" style="font-size:12px;margin-top:8px">지선 · 1일 전</div>
+  </div>
+  <div style="background:var(--lavender);border-radius:16px;box-shadow:0 1px 3px rgba(0,0,0,.06);padding:20px 16px 12px;position:relative">
+    <span style="position:absolute;top:8px;left:50%;transform:translateX(-50%);width:14px;height:14px;border-radius:999px;background:var(--sky);border:2px solid rgba(255,255,255,.8);box-shadow:0 1px 2px rgba(0,0,0,.15)"></span>
+    
+    <div style="font-size:16px">정수기 필터 교체 예약함</div>
+    <div class="muted" style="font-size:12px;margin-top:8px">준호 · 1일 전</div>
+  </div>
+</div></div>
+</div>
+</div>
+<h2>홈</h2>
+<div class="ds-grid">
+
+<div class="ds-card">
+  <div class="ds-card-head"><b>홈 요약 카드</b><span>장보기 요약(피치) · 새 소식(버터)</span></div>
+  <div class="ds-card-body">
+<div class="col">
+  <div style="background:var(--peach);border-radius:16px;box-shadow:0 1px 3px rgba(0,0,0,.06);padding:16px">
+    <div style="font-weight:700">🛒 사야 할 것 3개</div>
+    <div style="font-size:15px;color:rgba(74,66,56,.7);margin-top:2px">계란, 우유, 두부</div>
+  </div>
+  <div style="background:var(--butter);border-radius:16px;box-shadow:0 1px 3px rgba(0,0,0,.06);padding:16px">
+    <div style="font-weight:700;font-size:16px">🔔 그동안 새 소식</div>
+    <div style="font-size:15px;color:rgba(74,66,56,.7);margin-top:2px">식재료 변경 2건 · 새 메모 1개</div>
+  </div>
+</div></div>
+</div>
+</div>
+<h2>공통 UI</h2>
+<div class="ds-grid">
+
+<div class="ds-card">
+  <div class="ds-card-head"><b>버튼 · 입력 · 토글</b><span>CTA / 보조 / 다크 버튼, 입력창, 스위치</span></div>
+  <div class="ds-card-body">
+<div class="col" style="gap:16px">
+  <div class="row" style="flex-wrap:wrap">
+    <button class="btn" style="background:var(--peach)">일정 추가</button>
+    <button class="btn" style="background:var(--card);border:1px solid rgba(74,66,56,.15)">뒤로</button>
+    <button class="btn" style="background:var(--ink);color:var(--bg)">알겠어요</button>
+    <button class="btn" style="background:var(--peach);opacity:.4">비활성</button>
+  </div>
+  <div class="row">
+    <input placeholder="식재료 이름 (예: 계란)" style="flex:1;background:var(--card);border:1px solid rgba(74,66,56,.15);border-radius:12px;padding:12px 16px;font-size:16px;font-family:inherit;color:var(--ink)">
+    <button class="btn" style="background:var(--peach);padding:12px 20px">추가</button>
+  </div>
+  <div class="row" style="gap:24px">
+    <span class="row" style="gap:8px"><span style="width:52px;height:32px;border-radius:999px;background:var(--mint);position:relative;display:inline-block"><span style="position:absolute;top:4px;left:24px;width:24px;height:24px;background:var(--card);border-radius:999px;box-shadow:0 1px 2px rgba(0,0,0,.15)"></span></span><span style="font-size:15px">켜짐</span></span>
+    <span class="row" style="gap:8px"><span style="width:52px;height:32px;border-radius:999px;background:rgba(74,66,56,.15);position:relative;display:inline-block"><span style="position:absolute;top:4px;left:4px;width:24px;height:24px;background:var(--card);border-radius:999px;box-shadow:0 1px 2px rgba(0,0,0,.15)"></span></span><span style="font-size:15px">꺼짐</span></span>
+  </div>
+</div></div>
+</div>
+<div class="ds-card">
+  <div class="ds-card-head"><b>하단 탭바</b><span>아이콘 + 한글 라벨 항상 표시 · 뱃지 도트</span></div>
+  <div class="ds-card-body">
+<div class="card" style="border-radius:0;border-top:1px solid rgba(74,66,56,.1);display:flex">
+  
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 0;min-height:56px;">
+    <span style="font-size:22px;position:relative">🏠</span>
+    <span style="font-size:12px;font-weight:700">홈</span>
+  </div>
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 0;min-height:56px;opacity:.4">
+    <span style="font-size:22px;position:relative">🥕<span style="position:absolute;top:-4px;right:-8px;width:10px;height:10px;background:#F87171;border-radius:999px"></span></span>
+    <span style="font-size:12px;font-weight:500">냉장고</span>
+  </div>
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 0;min-height:56px;opacity:.4">
+    <span style="font-size:22px;position:relative">📅</span>
+    <span style="font-size:12px;font-weight:500">캘린더</span>
+  </div>
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 0;min-height:56px;opacity:.4">
+    <span style="font-size:22px;position:relative">📝</span>
+    <span style="font-size:12px;font-weight:500">메모</span>
+  </div>
+</div></div>
+</div>
+<div class="ds-card">
+  <div class="ds-card-head"><b>토스트 · 바텀시트</b><span>실시간 알림 토스트, 시트 그랩바</span></div>
+  <div class="ds-card-body">
+<div class="col" style="gap:20px;align-items:center">
+  <div style="background:var(--ink);color:var(--bg);font-size:16px;font-weight:500;padding:12px 20px;border-radius:999px;box-shadow:0 4px 12px rgba(0,0,0,.15)">방금 준호님이 '우유' 담았어요 🛒</div>
+  <div style="background:var(--ink);color:var(--bg);font-size:16px;font-weight:500;padding:12px 20px;border-radius:999px;box-shadow:0 4px 12px rgba(0,0,0,.15)">냉장고 채웠어요 🎉</div>
+  <div class="card" style="width:100%;border-radius:24px 24px 0 0;padding:20px;box-shadow:0 -4px 20px rgba(0,0,0,.08)">
+    <div style="width:40px;height:4px;background:rgba(74,66,56,.15);border-radius:999px;margin:0 auto 16px"></div>
+    <div style="font-size:19px;font-weight:700">7월 10일 (금)</div>
+    <div class="muted" style="font-size:15px;margin-top:4px">바텀시트 — 날짜 탭 시 일정 목록</div>
+  </div>
+</div></div>
+</div>
+</div>
