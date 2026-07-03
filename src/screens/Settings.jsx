@@ -188,7 +188,7 @@ export default function Settings({ onClose }) {
         </Section>
 
         <Section title="가족 초대">
-          <p className="text-[13.5px] font-semibold text-muted mb-3">가족에게 이 코드를 알려 주세요</p>
+          <p className="text-[13.5px] font-semibold text-muted mb-3">가족에게 이 코드를 알려 주세요 (탭하면 복사)</p>
           <button
             onClick={() => {
               navigator.clipboard?.writeText(family?.inviteCode || '')
@@ -197,6 +197,33 @@ export default function Settings({ onClose }) {
             className="w-full bg-accent-soft rounded-btn py-4 text-[26px] font-extrabold tracking-[0.3em] press"
           >
             {family?.inviteCode || '------'}
+          </button>
+          <button
+            onClick={async () => {
+              const text = [
+                `🧊 '${family?.name || '우리집'}' 냉장고 앱에 초대해요!`,
+                '',
+                `1. 링크 열기: ${location.origin}`,
+                '2. 구글로 로그인',
+                `3. '초대코드 입력' 누르고 → ${family?.inviteCode || ''}`,
+                '',
+                '장보기 · 일정 · 메모를 같이 써요 😊'
+              ].join('\n')
+              if (navigator.share) {
+                try {
+                  await navigator.share({ text })
+                } catch {
+                  // 공유 시트에서 취소한 경우 — 아무것도 안 함
+                }
+              } else {
+                navigator.clipboard?.writeText(text)
+                showToast('초대 메시지를 복사했어요. 카톡에 붙여넣으세요!')
+              }
+            }}
+            className="w-full mt-3 py-4 rounded-btn text-[15.5px] font-extrabold text-white bg-accent press"
+            style={{ boxShadow: '0 8px 20px rgb(var(--ff-accent) / .4)' }}
+          >
+            📤 카톡 등으로 초대장 보내기
           </button>
         </Section>
 

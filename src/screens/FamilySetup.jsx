@@ -89,13 +89,18 @@ export default function FamilySetup() {
           <button onClick={() => setMode('join')} className="bg-card border-[1.5px] border-line rounded-tile py-5 text-[16px] font-extrabold shadow-card press">
             🔑 초대코드 입력
           </button>
-          <button onClick={logout} className="mt-4 text-[13.5px] font-bold text-muted underline">로그아웃</button>
+          <p className="text-[12.5px] font-semibold text-muted text-center leading-relaxed">
+            가족 중 <b>한 명만</b> 만들면 돼요.<br />나머지는 초대코드로 참여!
+          </p>
+          <button onClick={logout} className="mt-2 text-[13.5px] font-bold text-muted underline">로그아웃</button>
         </div>
       )}
 
       {mode === 'create' && (
         <div className="w-full max-w-xs flex flex-col gap-3">
-          <label className="text-[13px] font-bold text-muted">가족 이름</label>
+          <label className="text-[13px] font-bold text-muted">
+            가족 이름 <span className="font-semibold">— 앱에 표시될 우리 그룹 이름이에요 (아무거나 OK)</span>
+          </label>
           <input
             value={familyName}
             onChange={(e) => setFamilyName(e.target.value)}
