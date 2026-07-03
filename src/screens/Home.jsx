@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
-import { greeting, todayStr, tomorrowStr, MEMO_COLORS, STATUS, itemEmoji, occursOn, eventExtraLabel, isIOS, isStandalone, storage } from '../utils'
+import { greeting, toDateStr, MEMO_COLORS, occursOn, eventExtraLabel, isIOS, isStandalone, storage } from '../utils'
 import InstallGuide from '../components/InstallGuide'
 
 const LAST_SEEN_KEY = 'fridge:lastSeenAt'
+const DAY_NAMES = ['일', '월', '화', '수', '목', '금', '토']
 
 export default function Home({ items, events, memos, onGoTab, onOpenSettings }) {
   const { user, profile, members } = useAuth()
@@ -11,24 +12,27 @@ export default function Home({ items, events, memos, onGoTab, onOpenSettings }) 
   const [showInstall, setShowInstall] = useState(false)
   const newsComputed = useRef(false)
 
-  const today = todayStr()
-  const tomorrow = tomorrowStr()
+  // 가장 가까운 일정 5개 (오늘부터 30일 안에서, 일정당 첫 등장일 기준)
+  const upcoming = useMemo(() => {
+    const list = []
+    const seen = new Set()
+    const base = new Date()
+    for (let d = 0; d <= 30 && list.length < 5; d++) {
+      const dt = new Date(base.getFullYear(), base.getMonth(), base.getDate() + d)
+      const ds = toDateStr(dt)
+      const dayLabel = d === 0 ? '오늘' : d === 1 ? '내일' : `${dt.getMonth() + 1}/${dt.getDate()} ${DAY_NAMES[dt.getDay()]}`
+      const dayEvents = (events || [])
+        .filter((e) => !seen.has(e.id) && occursOn(e, ds))
+        .sort((a, b) => ((a.time || '') < (b.time || '') ? -1 : 1))
+      for (const ev of dayEvents) {
+        if (list.length >= 5) break
+        seen.add(ev.id)
+        list.push({ ev, dayLabel })
+      }
+    }
+    return list
+  }, [events])
 
-  const todayEvents = useMemo(
-    () => (events || []).filter((e) => occursOn(e, today)).sort((a, b) => (a.time || '') < (b.time || '') ? -1 : 1),
-    [events, today]
-  )
-  const tomorrowEvents = useMemo(
-    () => (events || []).filter((e) => occursOn(e, tomorrow)).sort((a, b) => (a.time || '') < (b.time || '') ? -1 : 1),
-    [events, tomorrow]
-  )
-  const attention = useMemo(
-    () => (items || [])
-      .filter((i) => i.status === 'out' || i.status === 'low')
-      .sort((a, b) => (a.status === 'out' ? -1 : 1) - (b.status === 'out' ? -1 : 1))
-      .slice(0, 4),
-    [items]
-  )
   const stat = useMemo(() => ({
     total: (items || []).length,
     low: (items || []).filter((i) => i.status === 'low').length,
@@ -54,28 +58,6 @@ export default function Home({ items, events, memos, onGoTab, onOpenSettings }) 
 
   const showInstallBanner = isIOS() && !isStandalone()
 
-  function EventRow({ ev, dayLabel }) {
-    const owner = members[ev.owner]
-    return (
-      <div className="flex items-center gap-3 bg-card rounded-card border border-line shadow-card px-3.5 py-3">
-        <span
-          className="text-[11.5px] font-extrabold text-white px-2.5 py-1.5 rounded-full whitespace-nowrap shrink-0"
-          style={{ background: owner?.color || 'rgb(var(--ff-accent))' }}
-        >
-          {dayLabel} {ev.time || '종일'}
-        </span>
-        <div className="flex-1 min-w-0">
-          <p className="text-[14.5px] font-bold truncate">{ev.title}</p>
-          <p className="text-[12px] font-semibold text-muted">
-            {owner?.name || '가족'}
-            {eventExtraLabel(ev) ? ` · ${eventExtraLabel(ev)}` : ''}
-            {ev.memo ? ` · ${ev.memo}` : ''}
-          </p>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="px-5 pt-5 pb-4 max-w-lg mx-auto">
       <header className="flex items-start justify-between mb-5">
@@ -94,8 +76,9 @@ export default function Home({ items, events, memos, onGoTab, onOpenSettings }) 
         </button>
       </header>
 
-      <div
-        className="rounded-hero p-[22px] text-white shadow-card"
+      <button
+        onClick={() => onGoTab('fridge')}
+        className="w-full text-left rounded-hero p-[22px] text-white shadow-card press"
         style={{ background: 'linear-gradient(140deg, rgb(var(--ff-accent)) 0%, rgb(var(--ff-accent-deep)) 100%)' }}
       >
         <div className="flex justify-between items-center">
@@ -119,7 +102,8 @@ export default function Home({ items, events, memos, onGoTab, onOpenSettings }) 
             </div>
           ))}
         </div>
-      </div>
+        <p className="text-[11.5px] font-semibold opacity-75 text-center mt-3">누르면 냉장고로 이동 →</p>
+      </button>
 
       {showInstallBanner && (
         <button
@@ -145,51 +129,40 @@ export default function Home({ items, events, memos, onGoTab, onOpenSettings }) 
 
       <section className="mt-6">
         <div className="flex justify-between items-center mb-3">
-          <h2 className="text-[16px] font-extrabold">챙겨야 할 것 ⏰</h2>
-          <button onClick={() => onGoTab('fridge')} className="text-[13px] font-bold text-accent press">전체보기</button>
+          <h2 className="text-[16px] font-extrabold">다가오는 일정</h2>
+          <button onClick={() => onGoTab('calendar')} className="text-[13px] font-bold text-accent press">전체보기</button>
         </div>
         <div className="flex flex-col gap-2.5">
-          {attention.length === 0 && (
+          {upcoming.length === 0 && (
             <div className="bg-card rounded-card border border-line shadow-card px-4 py-4 text-center text-[14px] font-semibold text-muted">
-              지금은 다 넉넉해요 ✅
+              한 달 안에 잡힌 일정이 없어요 🍵
             </div>
           )}
-          {attention.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => onGoTab('fridge')}
-              className="flex items-center gap-3 bg-card rounded-card border border-line shadow-card px-3.5 py-3 press text-left w-full"
-            >
-              <span className="w-11 h-11 rounded-[13px] bg-alt grid place-items-center text-[23px] shrink-0">
-                {itemEmoji(item)}
-              </span>
-              <div className="flex-1 min-w-0">
-                <p className="text-[15px] font-bold truncate">{item.name}</p>
-                <p className="text-[12px] font-semibold text-muted mt-0.5">
-                  {members[item.updatedBy]?.name || '가족'}{item.memo ? ` · ${item.memo}` : ''}
-                </p>
-              </div>
-              <span
-                className="text-[12px] font-extrabold text-white px-2.5 py-1.5 rounded-[9px] whitespace-nowrap"
-                style={{ background: STATUS[item.status]?.color }}
+          {upcoming.map(({ ev, dayLabel }) => {
+            const owner = members[ev.owner]
+            return (
+              <button
+                key={ev.id}
+                onClick={() => onGoTab('calendar')}
+                className="flex items-center gap-3 bg-card rounded-card border border-line shadow-card px-3.5 py-3 press text-left w-full"
               >
-                {STATUS[item.status]?.label}
-              </span>
-            </button>
-          ))}
-        </div>
-      </section>
-
-      <section className="mt-6">
-        <h2 className="text-[16px] font-extrabold mb-3">오늘 · 내일 일정</h2>
-        <div className="flex flex-col gap-2.5">
-          {todayEvents.length === 0 && tomorrowEvents.length === 0 && (
-            <div className="bg-card rounded-card border border-line shadow-card px-4 py-4 text-center text-[14px] font-semibold text-muted">
-              일정이 없어요. 느긋한 이틀! 🍵
-            </div>
-          )}
-          {todayEvents.map((ev) => <EventRow key={ev.id} ev={ev} dayLabel="오늘" />)}
-          {tomorrowEvents.map((ev) => <EventRow key={ev.id} ev={ev} dayLabel="내일" />)}
+                <span
+                  className="text-[11.5px] font-extrabold text-white px-2.5 py-1.5 rounded-full whitespace-nowrap shrink-0"
+                  style={{ background: owner?.color || 'rgb(var(--ff-accent))' }}
+                >
+                  {dayLabel}{ev.time ? ` ${ev.time}` : ''}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[14.5px] font-bold truncate">{ev.title}</p>
+                  <p className="text-[12px] font-semibold text-muted">
+                    {owner?.name || '가족'}
+                    {eventExtraLabel(ev) ? ` · ${eventExtraLabel(ev)}` : ''}
+                    {ev.memo ? ` · ${ev.memo}` : ''}
+                  </p>
+                </div>
+              </button>
+            )
+          })}
         </div>
       </section>
 

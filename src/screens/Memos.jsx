@@ -64,11 +64,11 @@ export default function Memos({ memos, fabTick }) {
   return (
     <div className="px-5 pt-5 pb-4 max-w-lg mx-auto min-h-full">
       <h1 className="text-[25px] font-extrabold tracking-tight mb-1">메모 📝</h1>
-      <p className="text-[13.5px] font-semibold text-muted mb-5">냉장고 문에 붙이는 우리 집 메모</p>
+      <p className="text-[13.5px] font-semibold text-muted mb-5">공유하고 싶은 것, 같이 기억할 것들</p>
 
       {(memos || []).length === 0 && (
         <p className="text-center text-[14.5px] font-semibold text-muted py-16">
-          냉장고 문이 허전해요.<br />＋ 버튼으로 첫 메모를 붙여 보세요! 🧲
+          아직 메모가 없어요.<br />부탁할 것, 기억할 것을 ＋ 버튼으로 붙여 보세요! 🧲
         </p>
       )}
 

@@ -6,13 +6,16 @@ import BottomSheet from '../components/BottomSheet'
 import { toDateStr, todayStr, formatShortDate, occursOn, eventExtraLabel, REPEATS } from '../utils'
 
 const DAY_NAMES = ['일', '월', '화', '수', '목', '금', '토']
+const MAX_LANES = 3 // 한 주에 겹쳐 보여줄 일정 막대 수
+const NUM_ROW = 26 // 날짜 숫자 영역 높이(px)
+const BAR_H = 17 // 일정 막대 한 줄 높이(px)
 
 export default function Calendar({ events, fabTick }) {
   const { user, members, familyId } = useAuth()
   const [cursor, setCursor] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1) })
   const [selected, setSelected] = useState(null) // 'YYYY-MM-DD'
   const [adding, setAdding] = useState(false)
-  const [form, setForm] = useState({ title: '', time: '', memo: '', endDate: '', repeat: 'none' })
+  const [form, setForm] = useState({ title: '', time: '', memo: '', startDate: '', endDate: '', repeat: 'none' })
   const today = todayStr()
   const lastTick = useRef(fabTick)
 
@@ -21,46 +24,71 @@ export default function Calendar({ events, fabTick }) {
     if (fabTick !== lastTick.current) {
       lastTick.current = fabTick
       setSelected(today)
+      setForm((f) => ({ ...f, startDate: today }))
       setAdding(true)
     }
   }, [fabTick, today])
 
-  const grid = useMemo(() => {
+  // 달력을 주 단위로 (앞뒤 빈 칸 포함)
+  const weeks = useMemo(() => {
     const year = cursor.getFullYear()
     const month = cursor.getMonth()
-    const first = new Date(year, month, 1)
     const cells = []
+    const first = new Date(year, month, 1)
     for (let i = 0; i < first.getDay(); i++) cells.push(null)
     const days = new Date(year, month + 1, 0).getDate()
     for (let d = 1; d <= days; d++) cells.push(new Date(year, month, d))
-    return cells
+    while (cells.length % 7 !== 0) cells.push(null)
+    const rows = []
+    for (let i = 0; i < cells.length; i += 7) rows.push(cells.slice(i, i + 7))
+    return rows
   }, [cursor])
 
-  // 보이는 달의 날짜별 일정 (반복·연속 일정 포함)
-  const eventsByDate = useMemo(() => {
-    const map = {}
-    for (const cell of grid) {
-      if (!cell) continue
-      const ds = toDateStr(cell)
-      const list = (events || []).filter((e) => occursOn(e, ds))
-      if (list.length > 0) {
-        list.sort((a, b) => ((a.time || '') < (b.time || '') ? -1 : 1))
-        map[ds] = list
+  // 주별 일정 막대(span) 계산 — 타임트리처럼 날짜를 가로지르는 색 막대
+  const weekSpans = useMemo(() => {
+    return weeks.map((week) => {
+      const spans = []
+      for (const ev of events || []) {
+        let s = -1
+        let e = -1
+        week.forEach((cell, i) => {
+          if (cell && occursOn(ev, toDateStr(cell))) {
+            if (s < 0) s = i
+            e = i
+          }
+        })
+        if (s >= 0) spans.push({ ev, s, e, lane: 0 })
       }
-    }
-    return map
-  }, [events, grid])
+      // 먼저 시작하고 긴 일정부터 위 줄(lane)에 배치
+      spans.sort((a, b) => (a.s - b.s) || ((b.e - b.s) - (a.e - a.s)))
+      const lanes = []
+      for (const sp of spans) {
+        let l = 0
+        while ((lanes[l] || []).some((o) => !(sp.s > o.e || sp.e < o.s))) l++
+        if (!lanes[l]) lanes[l] = []
+        lanes[l].push(sp)
+        sp.lane = l
+      }
+      return spans
+    })
+  }, [weeks, events])
 
   function moveMonth(delta) {
     setCursor((c) => new Date(c.getFullYear(), c.getMonth() + delta, 1))
   }
 
+  function openAddForm() {
+    setForm((f) => ({ ...f, startDate: selected || today }))
+    setAdding(true)
+  }
+
   async function addEvent() {
-    if (!form.title.trim() || !selected) return
-    const multiEnd = form.repeat === 'none' && form.endDate && form.endDate > selected ? form.endDate : null
+    if (!form.title.trim()) return
+    const start = form.startDate || selected || today
+    const multiEnd = form.repeat === 'none' && form.endDate && form.endDate > start ? form.endDate : null
     await addDoc(collection(db, 'families', familyId, 'events'), {
       title: form.title.trim(),
-      date: selected,
+      date: start,
       endDate: multiEnd,
       repeat: form.repeat,
       time: form.time || null,
@@ -68,7 +96,7 @@ export default function Calendar({ events, fabTick }) {
       memo: form.memo.trim(),
       createdAt: serverTimestamp()
     })
-    setForm({ title: '', time: '', memo: '', endDate: '', repeat: 'none' })
+    setForm({ title: '', time: '', memo: '', startDate: '', endDate: '', repeat: 'none' })
     setAdding(false)
   }
 
@@ -89,15 +117,9 @@ export default function Calendar({ events, fabTick }) {
       .sort((a, b) => ((a.time || '') < (b.time || '') ? -1 : 1))
   }, [events, selected])
 
-  function hexToRgba(hex, a) {
-    const h = (hex || '#FF6B35').replace('#', '')
-    const n = parseInt(h, 16)
-    return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`
-  }
-
   return (
-    <div className="px-5 pt-5 pb-4 max-w-lg mx-auto">
-      <div className="flex justify-between items-center mb-5">
+    <div className="px-4 pt-5 pb-4 max-w-lg mx-auto">
+      <div className="flex justify-between items-center mb-4 px-1">
         <div>
           <h1 className="text-[25px] font-extrabold tracking-tight">
             {cursor.getFullYear()}년 {cursor.getMonth() + 1}월
@@ -112,45 +134,66 @@ export default function Calendar({ events, fabTick }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-7 gap-1.5 mb-2">
+      <div className="grid grid-cols-7 mb-1">
         {DAY_NAMES.map((d, i) => (
           <div key={d} className={`text-center text-[11px] font-bold py-1 ${i === 0 ? 'text-danger' : 'text-muted'}`}>{d}</div>
         ))}
       </div>
 
-      <div className="grid grid-cols-7 gap-1.5">
-        {grid.map((date, i) => {
-          if (!date) return <div key={`e${i}`} />
-          const ds = toDateStr(date)
-          const dayEvents = eventsByDate[ds] || []
-          const color = dayEvents.length > 0 ? (members[dayEvents[0].owner]?.color || '#FF6B35') : null
-          const isToday = ds === today
-          const isSelected = ds === selected
+      <div className="flex flex-col gap-1 bg-card border border-line rounded-tile p-1.5 shadow-card">
+        {weeks.map((week, wi) => {
+          const spans = weekSpans[wi]
+          const laneCount = Math.min(MAX_LANES, spans.reduce((m, sp) => Math.max(m, sp.lane + 1), 0))
+          const height = NUM_ROW + laneCount * BAR_H + 4
           return (
-            <button
-              key={ds}
-              onClick={() => setSelected(ds)}
-              className="aspect-square rounded-full flex flex-col items-center justify-center press transition-transform"
-              style={{
-                background: color || (isSelected ? 'rgb(var(--ff-accent-soft))' : 'transparent'),
-                boxShadow: color ? `0 6px 14px ${hexToRgba(color, 0.4)}` : 'none',
-                outline: isToday ? '2px solid rgb(var(--ff-accent))' : 'none',
-                outlineOffset: 2
-              }}
-            >
-              <span className={`text-[14px] ${color ? 'text-white font-extrabold' : date.getDay() === 0 ? 'text-danger font-semibold' : 'font-semibold'}`}>
-                {date.getDate()}
-              </span>
-              {dayEvents.length > 1 && (
-                <span className="text-[9px] font-extrabold text-white/90 -mt-0.5">+{dayEvents.length - 1}</span>
-              )}
-            </button>
+            <div key={wi} className="relative" style={{ height: Math.max(height, 46) }}>
+              <div className="grid grid-cols-7 h-full">
+                {week.map((cell, ci) => {
+                  if (!cell) return <div key={ci} />
+                  const ds = toDateStr(cell)
+                  const isToday = ds === today
+                  const isSelected = ds === selected
+                  return (
+                    <button
+                      key={ci}
+                      onClick={() => setSelected(ds)}
+                      className={`relative h-full rounded-[10px] press ${isSelected ? 'bg-accent-soft' : ''}`}
+                    >
+                      <span
+                        className={`inline-grid place-items-center w-[22px] h-[22px] mt-0.5 rounded-full text-[13px] ${
+                          isToday ? 'bg-accent text-white font-extrabold' : ci === 0 ? 'text-danger font-semibold' : 'font-semibold'
+                        }`}
+                      >
+                        {cell.getDate()}
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+              {spans.filter((sp) => sp.lane < MAX_LANES).map((sp, si) => (
+                <div
+                  key={si}
+                  className="absolute pointer-events-none text-white text-[10px] font-bold truncate px-1.5"
+                  style={{
+                    left: `calc(${(sp.s / 7) * 100}% + 2px)`,
+                    width: `calc(${((sp.e - sp.s + 1) / 7) * 100}% - 4px)`,
+                    top: NUM_ROW + sp.lane * BAR_H,
+                    height: BAR_H - 2,
+                    lineHeight: `${BAR_H - 2}px`,
+                    borderRadius: 7,
+                    background: members[sp.ev.owner]?.color || 'rgb(var(--ff-accent))'
+                  }}
+                >
+                  {sp.ev.title}
+                </div>
+              ))}
+            </div>
           )
         })}
       </div>
 
-      <p className="text-[12px] font-semibold text-muted/70 text-center mt-4">
-        날짜를 누르면 일정을 보고 추가할 수 있어요 · 색 원은 가족 일정
+      <p className="text-[12px] font-semibold text-muted/70 text-center mt-3">
+        날짜를 누르면 일정을 보고 추가할 수 있어요 · 막대 색은 등록한 가족
       </p>
 
       <BottomSheet open={!!selected} onClose={() => { setSelected(null); setAdding(false) }} title={selected ? `${formatShortDate(selected)} 📌` : ''}>
@@ -193,6 +236,28 @@ export default function Calendar({ events, fabTick }) {
               placeholder="일정 제목 (예: 병원 예약)"
               className="bg-alt border-[1.5px] border-line rounded-btn px-4 py-3 text-[15px] font-semibold outline-none focus:border-accent"
             />
+            <div className="flex gap-2">
+              <div className="flex-1 min-w-0">
+                <p className="text-[12.5px] font-bold text-muted mb-1.5">첫날</p>
+                <input
+                  type="date"
+                  value={form.startDate || selected || today}
+                  onChange={(e) => setForm({ ...form, startDate: e.target.value })}
+                  className="w-full bg-alt border-[1.5px] border-line rounded-btn px-3 py-2.5 text-[14px] font-semibold outline-none focus:border-accent"
+                />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[12.5px] font-bold text-muted mb-1.5">마지막 날 (하루면 비워두기)</p>
+                <input
+                  type="date"
+                  value={form.endDate}
+                  min={form.startDate || selected || today}
+                  disabled={form.repeat !== 'none'}
+                  onChange={(e) => setForm({ ...form, endDate: e.target.value })}
+                  className="w-full bg-alt border-[1.5px] border-line rounded-btn px-3 py-2.5 text-[14px] font-semibold outline-none focus:border-accent disabled:opacity-40"
+                />
+              </div>
+            </div>
             <div className="flex items-center gap-3">
               <label className="text-[13px] font-bold text-muted shrink-0">시간 (비우면 종일)</label>
               <input
@@ -201,38 +266,6 @@ export default function Calendar({ events, fabTick }) {
                 onChange={(e) => setForm({ ...form, time: e.target.value })}
                 className="bg-alt border-[1.5px] border-line rounded-btn px-3 py-2.5 text-[15px] font-semibold flex-1 outline-none focus:border-accent"
               />
-            </div>
-            <div>
-              <p className="text-[13px] font-bold text-muted mb-2">기간</p>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setForm({ ...form, endDate: '' })}
-                  className={`px-3.5 py-2.5 rounded-[13px] text-[13.5px] font-bold press border-[1.5px] ${
-                    !form.endDate ? 'bg-accent text-white border-accent' : 'bg-alt text-muted border-line'
-                  }`}
-                >
-                  하루
-                </button>
-                <button
-                  onClick={() => setForm({ ...form, repeat: 'none', endDate: form.endDate || selected })}
-                  className={`px-3.5 py-2.5 rounded-[13px] text-[13.5px] font-bold press border-[1.5px] ${
-                    form.endDate ? 'bg-accent text-white border-accent' : 'bg-alt text-muted border-line'
-                  }`}
-                >
-                  여러 날
-                </button>
-                {form.endDate && (
-                  <input
-                    type="date"
-                    value={form.endDate}
-                    min={selected}
-                    onChange={(e) => setForm({ ...form, endDate: e.target.value })}
-                    className="flex-1 min-w-0 bg-alt border-[1.5px] border-line rounded-btn px-3 py-2.5 text-[14px] font-semibold outline-none focus:border-accent"
-                    aria-label="마지막 날"
-                  />
-                )}
-              </div>
-              {form.endDate && <p className="text-[12px] font-semibold text-muted mt-1.5">마지막 날까지 매일 표시돼요</p>}
             </div>
             <div>
               <p className="text-[13px] font-bold text-muted mb-2">반복</p>
@@ -270,7 +303,7 @@ export default function Calendar({ events, fabTick }) {
           </div>
         ) : (
           <button
-            onClick={() => setAdding(true)}
+            onClick={openAddForm}
             className="w-full py-4 rounded-2xl text-[15.5px] font-extrabold text-white bg-accent press"
             style={{ boxShadow: '0 8px 20px rgb(var(--ff-accent) / .4)' }}
           >
