@@ -4,6 +4,7 @@ import { db } from '../firebase'
 import { useAuth } from '../contexts/AuthContext'
 import BottomSheet from '../components/BottomSheet'
 import { toDateStr, todayStr, formatShortDate, occursOn, eventExtraLabel, REPEATS } from '../utils'
+import { getHoliday } from '../holidays'
 
 const DAY_NAMES = ['일', '월', '화', '수', '목', '금', '토']
 const MAX_LANES = 4 // 한 주에 겹쳐 보여줄 일정 막대 수
@@ -49,6 +50,15 @@ export default function Calendar({ events, fabTick }) {
   const weekSpans = useMemo(() => {
     return weeks.map((week) => {
       const spans = []
+      // 공휴일은 빨간 막대로 (같은 이름이 이어지면 하나로 합침)
+      week.forEach((cell, i) => {
+        if (!cell) return
+        const name = getHoliday(toDateStr(cell))
+        if (!name) return
+        const prev = spans[spans.length - 1]
+        if (prev && prev.holiday === name && prev.e === i - 1) prev.e = i
+        else spans.push({ holiday: name, s: i, e: i, lane: 0 })
+      })
       for (const ev of events || []) {
         let s = -1
         let e = -1
@@ -60,8 +70,8 @@ export default function Calendar({ events, fabTick }) {
         })
         if (s >= 0) spans.push({ ev, s, e, lane: 0 })
       }
-      // 먼저 시작하고 긴 일정부터 위 줄(lane)에 배치
-      spans.sort((a, b) => (a.s - b.s) || ((b.e - b.s) - (a.e - a.s)))
+      // 공휴일 먼저, 그다음 먼저 시작하고 긴 일정부터 위 줄(lane)에 배치
+      spans.sort((a, b) => ((b.holiday ? 1 : 0) - (a.holiday ? 1 : 0)) || (a.s - b.s) || ((b.e - b.s) - (a.e - a.s)))
       const lanes = []
       for (const sp of spans) {
         let l = 0
@@ -156,6 +166,7 @@ export default function Calendar({ events, fabTick }) {
                   const ds = toDateStr(cell)
                   const isToday = ds === today
                   const isSelected = ds === selected
+                  const isHoliday = !!getHoliday(ds)
                   return (
                     <button
                       key={ci}
@@ -166,7 +177,7 @@ export default function Calendar({ events, fabTick }) {
                         className={`absolute top-1 left-1/2 -translate-x-1/2 grid place-items-center w-[24px] h-[24px] rounded-full text-[14px] ${
                           isToday
                             ? 'bg-accent text-white font-extrabold'
-                            : ci === 0 ? 'text-danger font-semibold' : ci === 6 ? 'text-[#3B82F6] font-semibold' : 'font-semibold'
+                            : isHoliday || ci === 0 ? 'text-danger font-semibold' : ci === 6 ? 'text-[#3B82F6] font-semibold' : 'font-semibold'
                         }`}
                       >
                         {cell.getDate()}
@@ -186,10 +197,10 @@ export default function Calendar({ events, fabTick }) {
                     height: BAR_H - 3,
                     lineHeight: `${BAR_H - 3}px`,
                     borderRadius: 6,
-                    background: members[sp.ev.owner]?.color || 'rgb(var(--ff-accent))'
+                    background: sp.holiday ? 'rgb(var(--ff-danger))' : (members[sp.ev.owner]?.color || 'rgb(var(--ff-accent))')
                   }}
                 >
-                  {sp.ev.title}
+                  {sp.holiday || sp.ev.title}
                 </div>
               ))}
             </div>
@@ -203,6 +214,12 @@ export default function Calendar({ events, fabTick }) {
 
       <BottomSheet open={!!selected} onClose={() => { setSelected(null); setAdding(false) }} title={selected ? `${formatShortDate(selected)} 📌` : ''}>
         <div className="flex flex-col gap-2.5 mb-4">
+          {selected && getHoliday(selected) && (
+            <div className="flex items-center gap-2.5 rounded-card px-3.5 py-3 bg-danger/10">
+              <span className="text-[18px]">🎌</span>
+              <span className="text-[14.5px] font-extrabold text-danger">{getHoliday(selected)}</span>
+            </div>
+          )}
           {selectedEvents.length === 0 && !adding && (
             <p className="text-[14.5px] font-semibold text-muted text-center py-4">일정이 없어요</p>
           )}
