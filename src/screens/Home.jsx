@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
-import { greeting, todayStr, tomorrowStr, MEMO_COLORS, CAT_EMOJI, STATUS, isIOS, isStandalone, storage } from '../utils'
+import { greeting, todayStr, tomorrowStr, MEMO_COLORS, STATUS, itemEmoji, isIOS, isStandalone, storage } from '../utils'
 import InstallGuide from '../components/InstallGuide'
 
 const LAST_SEEN_KEY = 'fridge:lastSeenAt'
@@ -157,7 +157,7 @@ export default function Home({ items, events, memos, onGoTab, onOpenSettings }) 
               className="flex items-center gap-3 bg-card rounded-card border border-line shadow-card px-3.5 py-3 press text-left w-full"
             >
               <span className="w-11 h-11 rounded-[13px] bg-alt grid place-items-center text-[23px] shrink-0">
-                {CAT_EMOJI[item.category] || '🧺'}
+                {itemEmoji(item)}
               </span>
               <div className="flex-1 min-w-0">
                 <p className="text-[15px] font-bold truncate">{item.name}</p>

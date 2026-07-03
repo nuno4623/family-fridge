@@ -3,14 +3,20 @@ import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '../firebase'
 import { useAuth } from '../contexts/AuthContext'
 import BottomSheet from './BottomSheet'
-import { CATEGORIES, CAT_EMOJI } from '../utils'
+import { CATEGORIES, CAT_EMOJI, guessEmoji } from '../utils'
 
-// 디자인 핸드오프의 "식재료 추가" 시트 — 이름 + 종류 칩
+const EMOJI_OPTIONS = ['🥚', '🥛', '🥬', '🍎', '🥩', '🍗', '🐟', '🍜', '🥫', '🧂']
+
+// 디자인 핸드오프의 "식재료 추가" 시트 — 이름 + 종류 칩 + 이모지
 export default function AddItemSheet({ open, onClose, initialStatus = 'stocked' }) {
   const { user, familyId } = useAuth()
   const [name, setName] = useState('')
   const [category, setCategory] = useState('냉장')
   const [memo, setMemo] = useState('')
+  const [pickedEmoji, setPickedEmoji] = useState(null) // null = 이름 보고 자동
+
+  const autoEmoji = guessEmoji(name) || CAT_EMOJI[category]
+  const currentEmoji = pickedEmoji || autoEmoji
 
   async function commit() {
     const n = name.trim()
@@ -20,26 +26,50 @@ export default function AddItemSheet({ open, onClose, initialStatus = 'stocked' 
       category,
       status: initialStatus,
       memo: memo.trim(),
+      emoji: pickedEmoji, // null이면 표시할 때 이름으로 자동 매칭
       checkedInCart: false,
       updatedBy: user.uid,
       updatedAt: serverTimestamp()
     })
     setName('')
     setMemo('')
+    setPickedEmoji(null)
     onClose()
   }
 
   return (
     <BottomSheet open={open} onClose={onClose} title="식재료 추가 🧺">
       <div className="text-[12.5px] font-bold text-muted mb-2">이름</div>
-      <input
-        autoFocus
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        onKeyDown={(e) => e.key === 'Enter' && commit()}
-        placeholder="예: 우유, 계란, 사과"
-        className="w-full border-[1.5px] border-line rounded-btn px-4 py-3 text-[15px] font-semibold bg-alt outline-none focus:border-accent"
-      />
+      <div className="flex items-center gap-2">
+        <span className="w-12 h-12 rounded-[13px] bg-alt grid place-items-center text-[26px] shrink-0" aria-hidden>
+          {currentEmoji}
+        </span>
+        <input
+          autoFocus
+          value={name}
+          onChange={(e) => { setName(e.target.value); setPickedEmoji(null) }}
+          onKeyDown={(e) => e.key === 'Enter' && commit()}
+          placeholder="예: 우유, 계란, 사과"
+          className="flex-1 min-w-0 border-[1.5px] border-line rounded-btn px-4 py-3 text-[15px] font-semibold bg-alt outline-none focus:border-accent"
+        />
+      </div>
+      <div className="text-[12.5px] font-bold text-muted mb-2 mt-4">
+        아이콘 <span className="font-semibold">— 이름 쓰면 자동으로 맞춰져요. 직접 골라도 OK</span>
+      </div>
+      <div className="flex gap-2 flex-wrap">
+        {EMOJI_OPTIONS.map((e) => (
+          <button
+            key={e}
+            onClick={() => setPickedEmoji(pickedEmoji === e ? null : e)}
+            className={`w-[46px] h-[46px] rounded-[13px] text-[22px] press border-[1.5px] ${
+              pickedEmoji === e ? 'border-accent bg-accent-soft' : 'border-line bg-alt'
+            }`}
+            aria-label={e}
+          >
+            {e}
+          </button>
+        ))}
+      </div>
       <div className="text-[12.5px] font-bold text-muted mb-2 mt-4">종류</div>
       <div className="flex gap-2">
         {CATEGORIES.map((c) => (

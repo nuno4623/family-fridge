@@ -5,7 +5,7 @@ import {
 import { db } from '../firebase'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../components/Toast'
-import { CATEGORIES, CAT_EMOJI, STATUS } from '../utils'
+import { CATEGORIES, CAT_EMOJI, STATUS, itemEmoji } from '../utils'
 
 const SEGMENTS = [
   { key: 'stock', label: '재고' },
@@ -134,7 +134,7 @@ export default function Fridge({ items }) {
         onMouseLeave={endPress}
       >
         <span className="w-11 h-11 rounded-[13px] bg-alt grid place-items-center text-[23px] shrink-0">
-          {CAT_EMOJI[item.category] || '🧺'}
+          {itemEmoji(item)}
         </span>
         <div className="flex-1 min-w-0">
           <p className="text-[15px] font-bold truncate">{item.name}</p>
@@ -272,7 +272,7 @@ export default function Fridge({ items }) {
                 >
                   {item.checkedInCart ? '✓' : ''}
                 </span>
-                <span className="text-[22px]">{CAT_EMOJI[item.category] || '🧺'}</span>
+                <span className="text-[22px]">{itemEmoji(item)}</span>
                 <span className={`text-[15px] font-bold flex-1 ${item.checkedInCart ? 'line-through' : ''}`}>
                   {item.name}
                 </span>
