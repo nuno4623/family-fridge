@@ -1,10 +1,10 @@
-<!-- @dsCard group="파운데이션" -->
+<!-- @dsCard group="냉장고" -->
 <!doctype html>
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>타이포그래피</title>
+<title>상태 배지</title>
 <link href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@400;500;700;800&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#FBF3EE;--alt:#F5EDE7;--surface:#FFFFFF;--text:#1B2740;--muted:#8C96A8;
@@ -24,17 +24,12 @@ body{padding:24px}</style>
 </head>
 <body>
 
-<div class="col" style="gap:18px">
-  <div><div style="font-size:25px;font-weight:800;letter-spacing:-.5px">우리 집 냉장고</div><div class="muted" style="font-size:11.5px">화면 제목 · 25px · 800</div></div>
-  <div><div style="font-size:21px;font-weight:800">식재료 추가 🧺</div><div class="muted" style="font-size:11.5px">시트 제목 · 21px · 800</div></div>
-  <div><div style="font-size:16px;font-weight:800">챙겨야 할 것 ⏰</div><div class="muted" style="font-size:11.5px">섹션 · 16px · 800</div></div>
-  <div><div style="font-size:15px;font-weight:700">항목 이름 · 본문</div><div class="muted" style="font-size:11.5px">본문 · 15px · 700 (크기 설정 시 ×1.12 / ×1.24)</div></div>
-  <div><div style="font-size:12px;font-weight:600;color:var(--muted)">준호 · 30구짜리로 · 2시간 전</div><div class="muted" style="font-size:11.5px">메타 · 12px · 600</div></div>
-  <div style="display:flex;gap:14px;margin-top:2px">
-    <span style="font-family:'Gothic A1';font-weight:700;font-size:14px">고딕</span>
-    <span style="font-family:'Noto Sans KR';font-weight:700;font-size:14px">노토</span>
-    <span style="font-family:'IBM Plex Sans KR';font-weight:600;font-size:14px">플렉스</span>
-  </div>
+<div class="row" style="flex-wrap:wrap;gap:10px">
+  <button class="badge" style="background:var(--good);padding:8px 14px">충분</button>
+  <button class="badge" style="background:var(--warn);padding:8px 14px">곧 떨어짐</button>
+  <button class="badge" style="background:var(--danger);padding:8px 14px">떨어짐</button>
+  <button class="badge" style="background:var(--accent);padding:8px 14px">장바구니</button>
 </div>
+<p class="muted" style="font-size:12px;margin-top:14px">흰 글씨 + 시맨틱 컬러 · 누르면 scale(0.96)</p>
 </body>
 </html>

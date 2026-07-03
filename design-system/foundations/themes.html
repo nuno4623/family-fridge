@@ -1,0 +1,79 @@
+<!-- @dsCard group="파운데이션" -->
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>테마 5종</title>
+<link href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@400;500;700;800&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#FBF3EE;--alt:#F5EDE7;--surface:#FFFFFF;--text:#1B2740;--muted:#8C96A8;
+--accent:#FF6B35;--accent-deep:#E8551F;--accent-soft:#FFE2D4;--line:#F0E6DE;
+--good:#2E9E5B;--warn:#F2A81D;--danger:#F0524B;
+--shadow:0 12px 30px rgba(255,107,53,.14)}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Gothic A1',-apple-system,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);font-size:15px;line-height:1.5}
+.card{background:var(--surface);border-radius:18px;border:1px solid var(--line);box-shadow:var(--shadow)}
+.badge{display:inline-flex;align-items:center;justify-content:center;border-radius:9px;padding:5px 10px;font-size:12px;font-weight:800;color:#fff;border:none;white-space:nowrap}
+.btn{border:none;border-radius:16px;font-family:inherit;font-weight:800;font-size:15.5px;color:#fff;background:var(--accent);padding:15px 20px;cursor:pointer;box-shadow:0 8px 20px rgba(255,107,53,.4)}
+.tile{width:44px;height:44px;border-radius:13px;background:var(--alt);display:grid;place-items:center;font-size:23px;flex-shrink:0}
+.muted{color:var(--muted)}
+.row{display:flex;align-items:center;gap:12px}
+.col{display:flex;flex-direction:column;gap:10px}
+body{padding:24px}</style>
+</head>
+<body>
+
+<div class="col" style="gap:12px">
+  
+  <div style="display:flex;align-items:center;gap:12px;background:#FBF3EE;border:1px solid #F0E6DE;border-radius:16px;padding:12px 14px">
+    <span style="width:34px;height:34px;border-radius:99px;background:linear-gradient(140deg,#FF6B35,#E8551F);flex-shrink:0;box-shadow:0 4px 10px #FF6B3555"></span>
+    <div style="flex:1"><div style="font-weight:800;font-size:14px">오렌지 (기본)</div>
+    <div class="muted" style="font-size:11.5px">accent #FF6B35 · bg #FBF3EE</div></div>
+    <span style="width:22px;height:22px;border-radius:7px;background:#FFE2D4;border:1px solid #F0E6DE"></span>
+    <span style="width:22px;height:22px;border-radius:7px;background:#F5EDE7;border:1px solid #F0E6DE"></span>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px;background:#FDF8EB;border:1px solid #F1E7CE;border-radius:16px;padding:12px 14px">
+    <span style="width:34px;height:34px;border-radius:99px;background:linear-gradient(140deg,#F5B21C,#E09A05);flex-shrink:0;box-shadow:0 4px 10px #F5B21C55"></span>
+    <div style="flex:1"><div style="font-weight:800;font-size:14px">옐로</div>
+    <div class="muted" style="font-size:11.5px">accent #F5B21C · bg #FDF8EB</div></div>
+    <span style="width:22px;height:22px;border-radius:7px;background:#FCEAC0;border:1px solid #F1E7CE"></span>
+    <span style="width:22px;height:22px;border-radius:7px;background:#F7F0DE;border:1px solid #F1E7CE"></span>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px;background:#EFF6F1;border:1px solid #DDECE2;border-radius:16px;padding:12px 14px">
+    <span style="width:34px;height:34px;border-radius:99px;background:linear-gradient(140deg,#2E9E5B,#1F7E45);flex-shrink:0;box-shadow:0 4px 10px #2E9E5B55"></span>
+    <div style="flex:1"><div style="font-weight:800;font-size:14px">그린</div>
+    <div class="muted" style="font-size:11.5px">accent #2E9E5B · bg #EFF6F1</div></div>
+    <span style="width:22px;height:22px;border-radius:7px;background:#D4EDDD;border:1px solid #DDECE2"></span>
+    <span style="width:22px;height:22px;border-radius:7px;background:#E4F0E8;border:1px solid #DDECE2"></span>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px;background:#FDF0F4;border:1px solid #F5DCE4;border-radius:16px;padding:12px 14px">
+    <span style="width:34px;height:34px;border-radius:99px;background:linear-gradient(140deg,#FF5C8A,#E83E6E);flex-shrink:0;box-shadow:0 4px 10px #FF5C8A55"></span>
+    <div style="flex:1"><div style="font-weight:800;font-size:14px">핑크</div>
+    <div class="muted" style="font-size:11.5px">accent #FF5C8A · bg #FDF0F4</div></div>
+    <span style="width:22px;height:22px;border-radius:7px;background:#FFD9E4;border:1px solid #F5DCE4"></span>
+    <span style="width:22px;height:22px;border-radius:7px;background:#F7E4EB;border:1px solid #F5DCE4"></span>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px;background:#EEF1F6;border:1px solid #E1E6EF;border-radius:16px;padding:12px 14px">
+    <span style="width:34px;height:34px;border-radius:99px;background:linear-gradient(140deg,#1F3A5F,#152A47);flex-shrink:0;box-shadow:0 4px 10px #1F3A5F55"></span>
+    <div style="flex:1"><div style="font-weight:800;font-size:14px">네이비</div>
+    <div class="muted" style="font-size:11.5px">accent #1F3A5F · bg #EEF1F6</div></div>
+    <span style="width:22px;height:22px;border-radius:7px;background:#D6DEEA;border:1px solid #E1E6EF"></span>
+    <span style="width:22px;height:22px;border-radius:7px;background:#E3E8F0;border:1px solid #E1E6EF"></span>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
+    
+    <span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;background:var(--surface);border:1px solid var(--line);border-radius:99px;padding:6px 12px 6px 7px">
+      <span style="width:16px;height:16px;border-radius:99px;background:#1B2740"></span>텍스트 #1B2740</span>
+    <span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;background:var(--surface);border:1px solid var(--line);border-radius:99px;padding:6px 12px 6px 7px">
+      <span style="width:16px;height:16px;border-radius:99px;background:#8C96A8"></span>보조 #8C96A8</span>
+    <span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;background:var(--surface);border:1px solid var(--line);border-radius:99px;padding:6px 12px 6px 7px">
+      <span style="width:16px;height:16px;border-radius:99px;background:#2E9E5B"></span>성공 #2E9E5B</span>
+    <span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;background:var(--surface);border:1px solid var(--line);border-radius:99px;padding:6px 12px 6px 7px">
+      <span style="width:16px;height:16px;border-radius:99px;background:#F2A81D"></span>경고 #F2A81D</span>
+    <span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;background:var(--surface);border:1px solid var(--line);border-radius:99px;padding:6px 12px 6px 7px">
+      <span style="width:16px;height:16px;border-radius:99px;background:#F0524B"></span>위험 #F0524B</span>
+  </div>
+</div>
+</body>
+</html>
