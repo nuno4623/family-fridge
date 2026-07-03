@@ -27,7 +27,8 @@ export default function SwipeToDelete({ onDelete, children }) {
       }
     }
     if (st.dir !== 'h') return
-    setDx(Math.max(-170, Math.min(0, st.base + ddx)))
+    st.dx = Math.max(-170, Math.min(0, st.base + ddx))
+    setDx(st.dx)
   }
 
   function up() {
@@ -39,11 +40,16 @@ export default function SwipeToDelete({ onDelete, children }) {
       st.suppress = true
       setTimeout(() => { s.current.suppress = false }, 300)
     }
-    setDx((cur) => {
-      if (cur < DELETE_X) { onDelete(); return -400 }
-      if (cur < OPEN_X / 2) return OPEN_X
-      return 0
-    })
+    const cur = st.dx ?? 0
+    st.dx = 0
+    if (cur < DELETE_X) {
+      setDx(-400)
+      onDelete()
+    } else if (cur < OPEN_X / 2) {
+      setDx(OPEN_X)
+    } else {
+      setDx(0)
+    }
   }
 
   return (

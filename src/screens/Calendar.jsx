@@ -22,6 +22,47 @@ export default function Calendar({ events, fabTick }) {
   const today = todayStr()
   const lastTick = useRef(fabTick)
 
+  // 좌우 스와이프로 달 넘기기
+  const swipe = useRef({ x: 0, y: 0, dir: null, dragging: false, suppress: false })
+  const [panX, setPanX] = useState(0)
+  const [panAnim, setPanAnim] = useState(false)
+
+  function panDown(e) {
+    swipe.current = { x: e.clientX, y: e.clientY, dir: null, dragging: true, suppress: false }
+    setPanAnim(false)
+  }
+  function panMove(e) {
+    const s = swipe.current
+    if (!s.dragging) return
+    const dx = e.clientX - s.x
+    const dy = e.clientY - s.y
+    if (s.dir === null) {
+      if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return
+      s.dir = Math.abs(dx) > Math.abs(dy) ? 'h' : 'v'
+      if (s.dir === 'h') {
+        try { e.currentTarget.setPointerCapture(e.pointerId) } catch { /* ignore */ }
+      }
+    }
+    if (s.dir !== 'h') return
+    s.panX = Math.max(-120, Math.min(120, dx))
+    setPanX(s.panX)
+  }
+  function panUp() {
+    const s = swipe.current
+    if (!s.dragging) return
+    s.dragging = false
+    setPanAnim(true)
+    if (s.dir === 'h') {
+      s.suppress = true
+      setTimeout(() => { swipe.current.suppress = false }, 300)
+    }
+    const cur = s.panX || 0
+    s.panX = 0
+    if (cur < -60) moveMonth(1)
+    else if (cur > 60) moveMonth(-1)
+    setPanX(0)
+  }
+
   // 중앙 FAB → 오늘 날짜 일정 추가
   useEffect(() => {
     if (fabTick !== lastTick.current) {
@@ -175,7 +216,21 @@ export default function Calendar({ events, fabTick }) {
         </div>
       )}
 
-      <div className="bg-card border-y border-line">
+      <div
+        className="bg-card border-y border-line overflow-hidden"
+        style={{ touchAction: 'pan-y' }}
+        onPointerDown={panDown}
+        onPointerMove={panMove}
+        onPointerUp={panUp}
+        onPointerCancel={panUp}
+        onClickCapture={(e) => {
+          if (swipe.current.suppress) {
+            e.stopPropagation()
+            e.preventDefault()
+          }
+        }}
+      >
+        <div style={{ transform: `translateX(${panX}px)`, transition: panAnim ? 'transform .18s ease' : 'none' }}>
         <div className="grid grid-cols-7 border-b border-line">
           {DAY_NAMES.map((d, i) => (
             <div key={d} className={`text-center text-[11.5px] font-bold py-1.5 ${
@@ -238,10 +293,11 @@ export default function Calendar({ events, fabTick }) {
             </div>
           )
         })}
+        </div>
       </div>
 
       <p className="text-[12px] font-semibold text-muted/70 text-center mt-3 px-4">
-        날짜를 누르면 일정을 보고 추가할 수 있어요 · 막대 색은 등록한 가족
+        옆으로 밀면 달 이동 · 날짜를 누르면 일정 보기 · 막대 색은 등록한 가족
       </p>
 
       <BottomSheet open={!!selected && !rangeMode} onClose={() => { setSelected(null); setAdding(false) }} title={selected ? `${formatShortDate(selected)} 📌` : ''}>
