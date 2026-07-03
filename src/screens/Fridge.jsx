@@ -5,7 +5,7 @@ import {
 import { db } from '../firebase'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../components/Toast'
-import { CATEGORIES, CAT_EMOJI, STATUS, itemEmoji } from '../utils'
+import { CATEGORIES, CAT_EMOJI, KINDS, KIND_EMOJI, STATUS, itemEmoji, itemKind, guessKind, storage } from '../utils'
 
 const SEGMENTS = [
   { key: 'stock', label: '재고' },
@@ -17,19 +17,36 @@ export default function Fridge({ items }) {
   const { user, familyId, members } = useAuth()
   const showToast = useToast()
   const [seg, setSeg] = useState('stock')
+  const [view, setView] = useState(() => storage.get('fridge:view') || 'loc') // 재고 보기 방식
   const [draft, setDraft] = useState('')
   const pressTimer = useRef(null)
 
   const itemsCol = collection(db, 'families', familyId, 'items')
 
-  const byCategory = useMemo(() => {
+  function changeView(v) {
+    setView(v)
+    storage.set('fridge:view', v)
+  }
+
+  // 재고 그룹핑: 위치별 / 종류별 / 상태순
+  const groups = useMemo(() => {
+    const list = items || []
+    if (view === 'kind') {
+      return KINDS.map((k) => ({
+        key: k, title: `${KIND_EMOJI[k]} ${k}`,
+        items: list.filter((i) => itemKind(i) === k)
+      }))
+    }
+    if (view === 'status') {
+      return [
+        ['out', '🔴 떨어짐'], ['low', '🟡 곧 떨어짐'], ['buying', '🛒 장바구니'], ['stocked', '🟢 충분']
+      ].map(([s, title]) => ({ key: s, title, items: list.filter((i) => i.status === s) }))
+    }
     const map = {}
     for (const c of CATEGORIES) map[c] = []
-    for (const it of items || []) {
-      (map[it.category] || map['기타']).push(it)
-    }
-    return map
-  }, [items])
+    for (const it of list) (map[it.category] || map['기타']).push(it)
+    return CATEGORIES.map((c) => ({ key: c, title: `${CAT_EMOJI[c]} ${c}`, items: map[c] }))
+  }, [items, view])
 
   const buyList = useMemo(
     () => (items || []).filter((i) => i.status === 'low' || i.status === 'out'),
@@ -47,8 +64,10 @@ export default function Fridge({ items }) {
     await addDoc(itemsCol, {
       name: n,
       category: '기타',
+      kind: guessKind(n) || '기타',
       status: 'out',
       memo: '',
+      emoji: null,
       checkedInCart: false,
       updatedBy: user.uid,
       updatedAt: serverTimestamp()
@@ -181,17 +200,33 @@ export default function Fridge({ items }) {
       <div className="px-5 pb-32 flex-1">
         {seg === 'stock' && (
           <div className="flex flex-col gap-5">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[12px] font-bold text-muted mr-1">보기</span>
+              {[['loc', '위치별'], ['kind', '종류별'], ['status', '상태순']].map(([v, label]) => (
+                <button
+                  key={v}
+                  onClick={() => changeView(v)}
+                  className={`px-3 py-1.5 rounded-full text-[12.5px] font-bold press border-[1.5px] ${
+                    view === v ? 'bg-ink text-white border-ink' : 'bg-card text-muted border-line'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
             {(items || []).length === 0 && (
               <p className="text-center text-[14.5px] font-semibold text-muted py-10">
                 아직 등록된 식재료가 없어요.<br />아래 ＋ 버튼으로 첫 항목을 추가해 보세요!
               </p>
             )}
-            {CATEGORIES.map((cat) =>
-              byCategory[cat].length > 0 ? (
-                <section key={cat}>
-                  <h2 className="text-[13px] font-extrabold text-muted mb-2">{CAT_EMOJI[cat]} {cat}</h2>
+            {groups.map((group) =>
+              group.items.length > 0 ? (
+                <section key={group.key}>
+                  <h2 className="text-[13px] font-extrabold text-muted mb-2">
+                    {group.title} <span className="font-bold opacity-60">{group.items.length}</span>
+                  </h2>
                   <div className="flex flex-col gap-2.5">
-                    {byCategory[cat].map((item) => (
+                    {group.items.map((item) => (
                       <ItemRow key={item.id} item={item} right={<StatusPill item={item} />} />
                     ))}
                   </div>

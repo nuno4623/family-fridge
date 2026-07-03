@@ -3,7 +3,7 @@ import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '../firebase'
 import { useAuth } from '../contexts/AuthContext'
 import BottomSheet from './BottomSheet'
-import { CATEGORIES, CAT_EMOJI, guessEmoji } from '../utils'
+import { CATEGORIES, CAT_EMOJI, KINDS, KIND_EMOJI, guessEmoji, guessKind } from '../utils'
 
 const EMOJI_OPTIONS = ['🥚', '🥛', '🥬', '🍎', '🥩', '🍗', '🐟', '🍜', '🥫', '🧂']
 
@@ -14,9 +14,11 @@ export default function AddItemSheet({ open, onClose, initialStatus = 'stocked' 
   const [category, setCategory] = useState('냉장')
   const [memo, setMemo] = useState('')
   const [pickedEmoji, setPickedEmoji] = useState(null) // null = 이름 보고 자동
+  const [pickedKind, setPickedKind] = useState(null) // null = 이름 보고 자동
 
   const autoEmoji = guessEmoji(name) || CAT_EMOJI[category]
   const currentEmoji = pickedEmoji || autoEmoji
+  const currentKind = pickedKind || guessKind(name) || '기타'
 
   async function commit() {
     const n = name.trim()
@@ -24,6 +26,7 @@ export default function AddItemSheet({ open, onClose, initialStatus = 'stocked' 
     await addDoc(collection(db, 'families', familyId, 'items'), {
       name: n,
       category,
+      kind: currentKind,
       status: initialStatus,
       memo: memo.trim(),
       emoji: pickedEmoji, // null이면 표시할 때 이름으로 자동 매칭
@@ -34,6 +37,7 @@ export default function AddItemSheet({ open, onClose, initialStatus = 'stocked' 
     setName('')
     setMemo('')
     setPickedEmoji(null)
+    setPickedKind(null)
     onClose()
   }
 
@@ -47,7 +51,7 @@ export default function AddItemSheet({ open, onClose, initialStatus = 'stocked' 
         <input
           autoFocus
           value={name}
-          onChange={(e) => { setName(e.target.value); setPickedEmoji(null) }}
+          onChange={(e) => { setName(e.target.value); setPickedEmoji(null); setPickedKind(null) }}
           onKeyDown={(e) => e.key === 'Enter' && commit()}
           placeholder="예: 우유, 계란, 사과"
           className="flex-1 min-w-0 border-[1.5px] border-line rounded-btn px-4 py-3 text-[15px] font-semibold bg-alt outline-none focus:border-accent"
@@ -70,7 +74,7 @@ export default function AddItemSheet({ open, onClose, initialStatus = 'stocked' 
           </button>
         ))}
       </div>
-      <div className="text-[12.5px] font-bold text-muted mb-2 mt-4">종류</div>
+      <div className="text-[12.5px] font-bold text-muted mb-2 mt-4">보관 위치</div>
       <div className="flex gap-2">
         {CATEGORIES.map((c) => (
           <button
@@ -81,6 +85,22 @@ export default function AddItemSheet({ open, onClose, initialStatus = 'stocked' 
             }`}
           >
             {CAT_EMOJI[c]} {c}
+          </button>
+        ))}
+      </div>
+      <div className="text-[12.5px] font-bold text-muted mb-2 mt-4">
+        종류 <span className="font-semibold">— 이름 쓰면 자동으로 맞춰져요</span>
+      </div>
+      <div className="flex gap-1.5 flex-wrap">
+        {KINDS.map((k) => (
+          <button
+            key={k}
+            onClick={() => setPickedKind(k)}
+            className={`px-3 py-2 rounded-full text-[12.5px] font-bold press border-[1.5px] ${
+              currentKind === k ? 'bg-accent text-white border-accent' : 'bg-alt text-muted border-line'
+            }`}
+          >
+            {KIND_EMOJI[k]} {k}
           </button>
         ))}
       </div>
