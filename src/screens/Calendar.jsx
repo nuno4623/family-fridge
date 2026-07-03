@@ -3,7 +3,7 @@ import { collection, doc, addDoc, deleteDoc, serverTimestamp } from 'firebase/fi
 import { db } from '../firebase'
 import { useAuth } from '../contexts/AuthContext'
 import BottomSheet from '../components/BottomSheet'
-import { toDateStr, todayStr, formatShortDate } from '../utils'
+import { toDateStr, todayStr, formatShortDate, occursOn, eventExtraLabel, REPEATS } from '../utils'
 
 const DAY_NAMES = ['일', '월', '화', '수', '목', '금', '토']
 
@@ -12,7 +12,7 @@ export default function Calendar({ events, fabTick }) {
   const [cursor, setCursor] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1) })
   const [selected, setSelected] = useState(null) // 'YYYY-MM-DD'
   const [adding, setAdding] = useState(false)
-  const [form, setForm] = useState({ title: '', time: '', memo: '' })
+  const [form, setForm] = useState({ title: '', time: '', memo: '', endDate: '', repeat: 'none' })
   const today = todayStr()
   const lastTick = useRef(fabTick)
 
@@ -25,15 +25,6 @@ export default function Calendar({ events, fabTick }) {
     }
   }, [fabTick, today])
 
-  const eventsByDate = useMemo(() => {
-    const map = {}
-    for (const e of events || []) {
-      (map[e.date] = map[e.date] || []).push(e)
-    }
-    for (const k in map) map[k].sort((a, b) => ((a.time || '') < (b.time || '') ? -1 : 1))
-    return map
-  }, [events])
-
   const grid = useMemo(() => {
     const year = cursor.getFullYear()
     const month = cursor.getMonth()
@@ -45,31 +36,58 @@ export default function Calendar({ events, fabTick }) {
     return cells
   }, [cursor])
 
+  // 보이는 달의 날짜별 일정 (반복·연속 일정 포함)
+  const eventsByDate = useMemo(() => {
+    const map = {}
+    for (const cell of grid) {
+      if (!cell) continue
+      const ds = toDateStr(cell)
+      const list = (events || []).filter((e) => occursOn(e, ds))
+      if (list.length > 0) {
+        list.sort((a, b) => ((a.time || '') < (b.time || '') ? -1 : 1))
+        map[ds] = list
+      }
+    }
+    return map
+  }, [events, grid])
+
   function moveMonth(delta) {
     setCursor((c) => new Date(c.getFullYear(), c.getMonth() + delta, 1))
   }
 
   async function addEvent() {
     if (!form.title.trim() || !selected) return
+    const multiEnd = form.repeat === 'none' && form.endDate && form.endDate > selected ? form.endDate : null
     await addDoc(collection(db, 'families', familyId, 'events'), {
       title: form.title.trim(),
       date: selected,
+      endDate: multiEnd,
+      repeat: form.repeat,
       time: form.time || null,
       owner: user.uid,
       memo: form.memo.trim(),
       createdAt: serverTimestamp()
     })
-    setForm({ title: '', time: '', memo: '' })
+    setForm({ title: '', time: '', memo: '', endDate: '', repeat: 'none' })
     setAdding(false)
   }
 
   function removeEvent(ev) {
-    if (confirm(`'${ev.title}' 일정을 삭제할까요?`)) {
+    const isRepeat = (ev.repeat || 'none') !== 'none'
+    const msg = isRepeat
+      ? `'${ev.title}' 반복 일정을 삭제할까요? (모든 반복이 함께 지워져요)`
+      : `'${ev.title}' 일정을 삭제할까요?`
+    if (confirm(msg)) {
       deleteDoc(doc(db, 'families', familyId, 'events', ev.id))
     }
   }
 
-  const selectedEvents = selected ? (eventsByDate[selected] || []) : []
+  const selectedEvents = useMemo(() => {
+    if (!selected) return []
+    return (events || [])
+      .filter((e) => occursOn(e, selected))
+      .sort((a, b) => ((a.time || '') < (b.time || '') ? -1 : 1))
+  }, [events, selected])
 
   function hexToRgba(hex, a) {
     const h = (hex || '#FF6B35').replace('#', '')
@@ -153,7 +171,9 @@ export default function Calendar({ events, fabTick }) {
                 <div className="flex-1 min-w-0">
                   <p className="text-[14.5px] font-bold">{ev.title}</p>
                   <p className="text-[12px] font-semibold text-muted mt-0.5">
-                    {owner?.name || '가족'}{ev.memo && ` · ${ev.memo}`}
+                    {owner?.name || '가족'}
+                    {eventExtraLabel(ev) && ` · ${eventExtraLabel(ev)}`}
+                    {ev.memo && ` · ${ev.memo}`}
                   </p>
                 </div>
                 {ev.owner === user.uid && (
@@ -181,6 +201,54 @@ export default function Calendar({ events, fabTick }) {
                 onChange={(e) => setForm({ ...form, time: e.target.value })}
                 className="bg-alt border-[1.5px] border-line rounded-btn px-3 py-2.5 text-[15px] font-semibold flex-1 outline-none focus:border-accent"
               />
+            </div>
+            <div>
+              <p className="text-[13px] font-bold text-muted mb-2">기간</p>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setForm({ ...form, endDate: '' })}
+                  className={`px-3.5 py-2.5 rounded-[13px] text-[13.5px] font-bold press border-[1.5px] ${
+                    !form.endDate ? 'bg-accent text-white border-accent' : 'bg-alt text-muted border-line'
+                  }`}
+                >
+                  하루
+                </button>
+                <button
+                  onClick={() => setForm({ ...form, repeat: 'none', endDate: form.endDate || selected })}
+                  className={`px-3.5 py-2.5 rounded-[13px] text-[13.5px] font-bold press border-[1.5px] ${
+                    form.endDate ? 'bg-accent text-white border-accent' : 'bg-alt text-muted border-line'
+                  }`}
+                >
+                  여러 날
+                </button>
+                {form.endDate && (
+                  <input
+                    type="date"
+                    value={form.endDate}
+                    min={selected}
+                    onChange={(e) => setForm({ ...form, endDate: e.target.value })}
+                    className="flex-1 min-w-0 bg-alt border-[1.5px] border-line rounded-btn px-3 py-2.5 text-[14px] font-semibold outline-none focus:border-accent"
+                    aria-label="마지막 날"
+                  />
+                )}
+              </div>
+              {form.endDate && <p className="text-[12px] font-semibold text-muted mt-1.5">마지막 날까지 매일 표시돼요</p>}
+            </div>
+            <div>
+              <p className="text-[13px] font-bold text-muted mb-2">반복</p>
+              <div className="flex gap-1.5 flex-wrap">
+                {REPEATS.map(([key, label]) => (
+                  <button
+                    key={key}
+                    onClick={() => setForm({ ...form, repeat: key, endDate: key === 'none' ? form.endDate : '' })}
+                    className={`px-3.5 py-2 rounded-full text-[13px] font-bold press border-[1.5px] ${
+                      form.repeat === key ? 'bg-accent text-white border-accent' : 'bg-alt text-muted border-line'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
             </div>
             <input
               value={form.memo}

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
-import { greeting, todayStr, tomorrowStr, MEMO_COLORS, STATUS, itemEmoji, isIOS, isStandalone, storage } from '../utils'
+import { greeting, todayStr, tomorrowStr, MEMO_COLORS, STATUS, itemEmoji, occursOn, eventExtraLabel, isIOS, isStandalone, storage } from '../utils'
 import InstallGuide from '../components/InstallGuide'
 
 const LAST_SEEN_KEY = 'fridge:lastSeenAt'
@@ -15,11 +15,11 @@ export default function Home({ items, events, memos, onGoTab, onOpenSettings }) 
   const tomorrow = tomorrowStr()
 
   const todayEvents = useMemo(
-    () => (events || []).filter((e) => e.date === today).sort((a, b) => (a.time || '') < (b.time || '') ? -1 : 1),
+    () => (events || []).filter((e) => occursOn(e, today)).sort((a, b) => (a.time || '') < (b.time || '') ? -1 : 1),
     [events, today]
   )
   const tomorrowEvents = useMemo(
-    () => (events || []).filter((e) => e.date === tomorrow).sort((a, b) => (a.time || '') < (b.time || '') ? -1 : 1),
+    () => (events || []).filter((e) => occursOn(e, tomorrow)).sort((a, b) => (a.time || '') < (b.time || '') ? -1 : 1),
     [events, tomorrow]
   )
   const attention = useMemo(
@@ -66,7 +66,11 @@ export default function Home({ items, events, memos, onGoTab, onOpenSettings }) 
         </span>
         <div className="flex-1 min-w-0">
           <p className="text-[14.5px] font-bold truncate">{ev.title}</p>
-          <p className="text-[12px] font-semibold text-muted">{owner?.name || '가족'}{ev.memo ? ` · ${ev.memo}` : ''}</p>
+          <p className="text-[12px] font-semibold text-muted">
+            {owner?.name || '가족'}
+            {eventExtraLabel(ev) ? ` · ${eventExtraLabel(ev)}` : ''}
+            {ev.memo ? ` · ${ev.memo}` : ''}
+          </p>
         </div>
       </div>
     )

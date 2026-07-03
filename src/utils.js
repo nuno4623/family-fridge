@@ -127,6 +127,50 @@ export function relativeTime(ts) {
   return `${date.getMonth() + 1}월 ${date.getDate()}일`
 }
 
+// ---------- 일정 반복/기간 ----------
+export const REPEATS = [
+  ['none', '안 함'], ['daily', '매일'], ['weekly', '매주'], ['monthly', '매달'], ['yearly', '매년']
+]
+
+const DAY_NAMES_KO = ['일', '월', '화', '수', '목', '금', '토']
+
+// 이 일정이 해당 날짜(YYYY-MM-DD)에 표시되어야 하는가
+export function occursOn(ev, ds) {
+  if (!ev?.date || !ds || ds < ev.date) return false
+  const repeat = ev.repeat || 'none'
+  if (repeat === 'none') {
+    return ds <= (ev.endDate || ev.date)
+  }
+  const [sy, sm, sd] = ev.date.split('-').map(Number)
+  const [, m, d] = ds.split('-').map(Number)
+  if (repeat === 'daily') return true
+  if (repeat === 'weekly') {
+    const [y] = ds.split('-').map(Number)
+    return new Date(y, m - 1, d).getDay() === new Date(sy, sm - 1, sd).getDay()
+  }
+  if (repeat === 'monthly') return d === sd
+  if (repeat === 'yearly') return d === sd && m === sm
+  return false
+}
+
+// 일정 카드에 붙일 반복/기간 설명 (없으면 null)
+export function eventExtraLabel(ev) {
+  const repeat = ev.repeat || 'none'
+  if (repeat !== 'none') {
+    const [sy, sm, sd] = ev.date.split('-').map(Number)
+    if (repeat === 'daily') return '🔁 매일'
+    if (repeat === 'weekly') return `🔁 매주 ${DAY_NAMES_KO[new Date(sy, sm - 1, sd).getDay()]}요일`
+    if (repeat === 'monthly') return `🔁 매달 ${sd}일`
+    if (repeat === 'yearly') return `🔁 매년 ${sm}/${sd}`
+  }
+  if (ev.endDate && ev.endDate !== ev.date) {
+    const [, m, d] = ev.date.split('-').map(Number)
+    const [, em, ed] = ev.endDate.split('-').map(Number)
+    return `${m}/${d}~${em}/${ed}`
+  }
+  return null
+}
+
 export function makeInviteCode() {
   // 헷갈리는 문자(0/O, 1/I) 제외
   const chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'

@@ -68,7 +68,9 @@ seed(`families/${FAM}/events`, [
   ['e2', { title: '마트 같이 가기', date: daysFromNow(1), time: '10:30', owner: U1, memo: '', createdAt: hoursAgo(10) }],
   ['e3', { title: '아파트 소독', date: daysFromNow(3), time: null, owner: U2, memo: '오전 중 방문', createdAt: hoursAgo(50) }],
   ['e4', { title: '김장', date: daysFromNow(9), time: null, owner: U3, memo: '배추 20포기', createdAt: hoursAgo(70) }],
-  ['e5', { title: '친구 모임', date: daysFromNow(5), time: '19:00', owner: U2, memo: '', createdAt: hoursAgo(15) }]
+  ['e5', { title: '친구 모임', date: daysFromNow(5), time: '19:00', owner: U2, memo: '', createdAt: hoursAgo(15) }],
+  ['e6', { title: '제주 여행', date: daysFromNow(6), endDate: daysFromNow(8), time: null, owner: U1, memo: '2박 3일', createdAt: hoursAgo(20) }],
+  ['e7', { title: '분리수거', date: daysFromNow(-4), repeat: 'weekly', time: '08:00', owner: U2, memo: '', createdAt: hoursAgo(96) }]
 ])
 
 seed(`families/${FAM}/memos`, [
