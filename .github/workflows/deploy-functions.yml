@@ -1,8 +1,13 @@
 name: 배포 (푸시 알림 Functions)
 
-# Blaze 요금제 업그레이드 후 Actions 탭에서 수동 실행 (Run workflow)
+# Blaze 요금제 필요. functions/ 변경 푸시 시 자동 실행, Actions 탭에서 수동 실행도 가능
 on:
   workflow_dispatch:
+  push:
+    branches: [main, claude/untitled-session-v32pis]
+    paths:
+      - 'functions/**'
+      - '.github/workflows/deploy-functions.yml'
 
 jobs:
   deploy-functions:
