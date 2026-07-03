@@ -1,6 +1,7 @@
 node_modules
 dist
 dev-dist
+demo-dist
 .env
 .env.local
 *.log
