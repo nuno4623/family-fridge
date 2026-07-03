@@ -17,6 +17,7 @@ export default function Calendar({ events, fabTick }) {
   const [cursor, setCursor] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1) })
   const [selected, setSelected] = useState(null) // 'YYYY-MM-DD'
   const [adding, setAdding] = useState(false)
+  const [rangeMode, setRangeMode] = useState(null) // null | 'start' | 'end' — 캘린더에서 기간 잡는 중
   const [form, setForm] = useState({ title: '', time: '', memo: '', startDate: '', endDate: '', repeat: 'none' })
   const today = todayStr()
   const lastTick = useRef(fabTick)
@@ -93,6 +94,24 @@ export default function Calendar({ events, fabTick }) {
     setAdding(true)
   }
 
+  // 캘린더에서 기간 잡기: 첫날 탭 → 마지막 날 탭
+  function handleRangeTap(ds) {
+    if (rangeMode === 'start') {
+      setForm((f) => ({ ...f, startDate: ds, endDate: '' }))
+      setRangeMode('end')
+      return
+    }
+    const start = form.startDate
+    if (!start || ds < start) {
+      // 시작일보다 앞을 탭하면 시작일을 다시 잡는다
+      setForm((f) => ({ ...f, startDate: ds, endDate: '' }))
+      return
+    }
+    setForm((f) => ({ ...f, endDate: ds === start ? '' : ds, repeat: 'none' }))
+    setSelected(start)
+    setRangeMode(null)
+  }
+
   async function addEvent() {
     if (!form.title.trim()) return
     const start = form.startDate || selected || today
@@ -145,6 +164,17 @@ export default function Calendar({ events, fabTick }) {
         </div>
       </div>
 
+      {rangeMode && (
+        <div className="mx-4 mb-2 flex items-center gap-2 bg-accent-soft rounded-card px-3.5 py-3">
+          <span className="flex-1 text-[13.5px] font-bold leading-snug">
+            {rangeMode === 'start'
+              ? '📅 일정의 첫날을 탭하세요'
+              : `${formatShortDate(form.startDate)}부터 — 마지막 날을 탭하세요 (같은 날 = 하루)`}
+          </span>
+          <button onClick={() => setRangeMode(null)} className="text-[13px] font-extrabold text-accent press shrink-0">취소</button>
+        </div>
+      )}
+
       <div className="bg-card border-y border-line">
         <div className="grid grid-cols-7 border-b border-line">
           {DAY_NAMES.map((d, i) => (
@@ -165,13 +195,15 @@ export default function Calendar({ events, fabTick }) {
                   if (!cell) return <div key={ci} />
                   const ds = toDateStr(cell)
                   const isToday = ds === today
-                  const isSelected = ds === selected
+                  const isSelected = ds === selected && !rangeMode
                   const isHoliday = !!getHoliday(ds)
+                  const inRange = rangeMode && form.startDate &&
+                    ds >= form.startDate && ds <= (form.endDate || form.startDate)
                   return (
                     <button
                       key={ci}
-                      onClick={() => setSelected(ds)}
-                      className={`relative h-full ${isSelected ? 'bg-accent-soft/50' : ''}`}
+                      onClick={() => (rangeMode ? handleRangeTap(ds) : setSelected(ds))}
+                      className={`relative h-full ${isSelected || inRange ? 'bg-accent-soft/60' : ''}`}
                     >
                       <span
                         className={`absolute top-1 left-1/2 -translate-x-1/2 grid place-items-center w-[24px] h-[24px] rounded-full text-[14px] ${
@@ -212,7 +244,7 @@ export default function Calendar({ events, fabTick }) {
         날짜를 누르면 일정을 보고 추가할 수 있어요 · 막대 색은 등록한 가족
       </p>
 
-      <BottomSheet open={!!selected} onClose={() => { setSelected(null); setAdding(false) }} title={selected ? `${formatShortDate(selected)} 📌` : ''}>
+      <BottomSheet open={!!selected && !rangeMode} onClose={() => { setSelected(null); setAdding(false) }} title={selected ? `${formatShortDate(selected)} 📌` : ''}>
         <div className="flex flex-col gap-2.5 mb-4">
           {selected && getHoliday(selected) && (
             <div className="flex items-center gap-2.5 rounded-card px-3.5 py-3 bg-danger/10">
@@ -258,27 +290,22 @@ export default function Calendar({ events, fabTick }) {
               placeholder="일정 제목 (예: 병원 예약)"
               className="bg-alt border-[1.5px] border-line rounded-btn px-4 py-3 text-[15px] font-semibold outline-none focus:border-accent"
             />
-            <div className="flex gap-2">
-              <div className="flex-1 min-w-0">
-                <p className="text-[12.5px] font-bold text-muted mb-1.5">첫날</p>
-                <input
-                  type="date"
-                  value={form.startDate || selected || today}
-                  onChange={(e) => setForm({ ...form, startDate: e.target.value })}
-                  className="w-full bg-alt border-[1.5px] border-line rounded-btn px-3 py-2.5 text-[14px] font-semibold outline-none focus:border-accent"
-                />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[12.5px] font-bold text-muted mb-1.5">마지막 날 (하루면 비워두기)</p>
-                <input
-                  type="date"
-                  value={form.endDate}
-                  min={form.startDate || selected || today}
-                  disabled={form.repeat !== 'none'}
-                  onChange={(e) => setForm({ ...form, endDate: e.target.value })}
-                  className="w-full bg-alt border-[1.5px] border-line rounded-btn px-3 py-2.5 text-[14px] font-semibold outline-none focus:border-accent disabled:opacity-40"
-                />
-              </div>
+            <div>
+              <p className="text-[12.5px] font-bold text-muted mb-1.5">기간</p>
+              <button
+                onClick={() => {
+                  setForm((f) => ({ ...f, startDate: f.startDate || selected || today }))
+                  setRangeMode('start')
+                }}
+                disabled={form.repeat !== 'none'}
+                className="w-full flex items-center justify-between gap-2 bg-alt border-[1.5px] border-line rounded-btn px-4 py-3 text-[14px] font-bold press disabled:opacity-40"
+              >
+                <span className="truncate">
+                  📅 {formatShortDate(form.startDate || selected || today)}
+                  {form.endDate ? ` → ${formatShortDate(form.endDate)}` : ' · 하루'}
+                </span>
+                <span className="text-accent text-[12.5px] font-extrabold whitespace-nowrap shrink-0">캘린더에서 잡기</span>
+              </button>
             </div>
             <div className="flex items-center gap-3">
               <label className="text-[13px] font-bold text-muted shrink-0">시간 (비우면 종일)</label>
