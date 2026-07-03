@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { doc, updateDoc, arrayRemove } from 'firebase/firestore'
 import { db } from '../firebase'
 import { useAuth } from '../contexts/AuthContext'
@@ -34,7 +34,19 @@ export default function Settings({ onClose }) {
   const { prefs, setPrefs } = useTheme()
   const showToast = useToast()
   const [name, setName] = useState(profile?.name || '')
+  const [famName, setFamName] = useState(family?.name || '')
   const [busy, setBusy] = useState(false)
+
+  useEffect(() => {
+    if (family?.name) setFamName(family.name)
+  }, [family?.name])
+
+  async function saveFamName() {
+    const n = famName.trim()
+    if (!n || !profile?.familyId || n === family?.name) return
+    await updateDoc(doc(db, 'families', profile.familyId), { name: n })
+    showToast('가족 이름을 바꿨어요')
+  }
 
   const userRef = doc(db, 'users', user.uid)
   const notify = profile?.notify || {}
@@ -187,7 +199,17 @@ export default function Settings({ onClose }) {
           ))}
         </Section>
 
-        <Section title="가족 초대">
+        <Section title="우리 가족">
+          <p className="text-[13.5px] font-bold mb-2">가족 이름 <span className="font-semibold text-muted">— 홈 화면 제목으로 표시돼요</span></p>
+          <div className="flex gap-2 mb-5">
+            <input
+              value={famName}
+              onChange={(e) => setFamName(e.target.value)}
+              className="flex-1 min-w-0 bg-alt border-[1.5px] border-line rounded-btn px-4 py-3 text-[15px] font-semibold outline-none focus:border-accent"
+              placeholder="예: 우리집, 지선네"
+            />
+            <button onClick={saveFamName} className="rounded-btn px-4 text-[14px] font-extrabold text-white bg-accent press shrink-0">저장</button>
+          </div>
           <p className="text-[13.5px] font-semibold text-muted mb-3">가족에게 이 코드를 알려 주세요 (탭하면 복사)</p>
           <button
             onClick={() => {

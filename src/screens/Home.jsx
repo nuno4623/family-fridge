@@ -7,7 +7,7 @@ const LAST_SEEN_KEY = 'fridge:lastSeenAt'
 const DAY_NAMES = ['일', '월', '화', '수', '목', '금', '토']
 
 export default function Home({ items, events, memos, onGoTab, onOpenSettings }) {
-  const { user, profile, members } = useAuth()
+  const { user, profile, members, family } = useAuth()
   const [news, setNews] = useState(null)
   const [showInstall, setShowInstall] = useState(false)
   const newsComputed = useRef(false)
@@ -66,7 +66,7 @@ export default function Home({ items, events, memos, onGoTab, onOpenSettings }) 
             <span className="whitespace-nowrap">안녕하세요, {profile?.name || ''}님 👋</span>{' '}
             <span className="whitespace-nowrap">{greeting()}</span>
           </p>
-          <h1 className="text-[25px] font-extrabold tracking-tight">식구들 🧊</h1>
+          <h1 className="text-[25px] font-extrabold tracking-tight">{family?.name || '식구들'} 🧊</h1>
         </div>
         <button
           onClick={onOpenSettings}
