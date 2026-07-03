@@ -6,6 +6,7 @@ import { db } from '../firebase'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../components/Toast'
 import SwipeToDelete from '../components/SwipeToDelete'
+import AddItemSheet from '../components/AddItemSheet'
 import { CATEGORIES, CAT_EMOJI, KINDS, KIND_EMOJI, STATUS, itemEmoji, itemKind, guessKind, storage } from '../utils'
 
 const SEGMENTS = [
@@ -20,6 +21,7 @@ export default function Fridge({ items }) {
   const [seg, setSeg] = useState('stock')
   const [view, setView] = useState(() => storage.get('fridge:view') || 'loc') // 재고 보기 방식
   const [draft, setDraft] = useState('')
+  const [editItem, setEditItem] = useState(null) // 탭해서 수정 중인 재료
 
   const itemsCol = collection(db, 'families', familyId, 'items')
 
@@ -134,15 +136,17 @@ export default function Fridge({ items }) {
     return (
       <SwipeToDelete onDelete={() => deleteDoc(doc(itemsCol, item.id))}>
         <div className="flex items-center gap-3 bg-card rounded-card border border-line shadow-card px-3.5 py-2.5 min-h-[56px] select-none">
-          <span className="w-11 h-11 rounded-[13px] bg-alt grid place-items-center text-[23px] shrink-0">
-            {itemEmoji(item)}
-          </span>
-          <div className="flex-1 min-w-0">
-            <p className="text-[15px] font-bold truncate">{item.name}</p>
-            <p className="text-[12px] font-semibold text-muted truncate mt-0.5">
-              {members[item.updatedBy]?.name || '가족'}{item.memo ? ` · ${item.memo}` : ''}
-            </p>
-          </div>
+          <button onClick={() => setEditItem(item)} className="flex items-center gap-3 flex-1 min-w-0 text-left press">
+            <span className="w-11 h-11 rounded-[13px] bg-alt grid place-items-center text-[23px] shrink-0">
+              {itemEmoji(item)}
+            </span>
+            <div className="flex-1 min-w-0">
+              <p className="text-[15px] font-bold truncate">{item.name}</p>
+              <p className="text-[12px] font-semibold text-muted truncate mt-0.5">
+                {members[item.updatedBy]?.name || '가족'}{item.memo ? ` · ${item.memo}` : ''}
+              </p>
+            </div>
+          </button>
           {right}
         </div>
       </SwipeToDelete>
@@ -217,7 +221,7 @@ export default function Fridge({ items }) {
               ) : null
             )}
             <p className="text-[12px] font-semibold text-muted/70 text-center">
-              상태 버튼: 충분 → 곧 떨어짐 → 떨어짐 순환 · 왼쪽으로 밀면 삭제
+              재료를 누르면 수정 · 상태 버튼 탭 = 상태 순환 · 왼쪽으로 밀면 삭제
             </p>
           </div>
         )}
@@ -314,6 +318,8 @@ export default function Fridge({ items }) {
           </div>
         )}
       </div>
+
+      <AddItemSheet open={!!editItem} item={editItem} onClose={() => setEditItem(null)} />
     </div>
   )
 }

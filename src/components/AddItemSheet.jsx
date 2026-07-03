@@ -1,20 +1,37 @@
-import { useState } from 'react'
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
+import { useEffect, useState } from 'react'
+import { collection, doc, addDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '../firebase'
 import { useAuth } from '../contexts/AuthContext'
 import BottomSheet from './BottomSheet'
-import { CATEGORIES, CAT_EMOJI, KINDS, KIND_EMOJI, guessEmoji, guessKind } from '../utils'
+import { CATEGORIES, CAT_EMOJI, KINDS, KIND_EMOJI, STATUS, guessEmoji, guessKind } from '../utils'
 
 const EMOJI_OPTIONS = ['🥚', '🥛', '🥬', '🍎', '🥩', '🍗', '🐟', '🍜', '🥫', '🧂']
 
-// 디자인 핸드오프의 "식재료 추가" 시트 — 이름 + 종류 칩 + 이모지
-export default function AddItemSheet({ open, onClose, initialStatus = 'stocked' }) {
+// 식재료 추가 + 수정 시트 (item이 있으면 수정 모드)
+export default function AddItemSheet({ open, onClose, initialStatus = 'stocked', item = null }) {
   const { user, familyId } = useAuth()
+  const isEdit = !!item
   const [name, setName] = useState('')
   const [category, setCategory] = useState('냉장')
   const [memo, setMemo] = useState('')
+  const [status, setStatus] = useState(initialStatus)
   const [pickedEmoji, setPickedEmoji] = useState(null) // null = 이름 보고 자동
   const [pickedKind, setPickedKind] = useState(null) // null = 이름 보고 자동
+
+  // 열릴 때 수정 대상 값으로 채우기
+  useEffect(() => {
+    if (!open) return
+    if (item) {
+      setName(item.name || '')
+      setCategory(item.category || '냉장')
+      setMemo(item.memo || '')
+      setStatus(item.status || 'stocked')
+      setPickedEmoji(item.emoji || null)
+      setPickedKind(item.kind || null)
+    } else {
+      setStatus(initialStatus)
+    }
+  }, [open, item, initialStatus])
 
   const autoEmoji = guessEmoji(name) || CAT_EMOJI[category]
   const currentEmoji = pickedEmoji || autoEmoji
@@ -23,33 +40,49 @@ export default function AddItemSheet({ open, onClose, initialStatus = 'stocked' 
   async function commit() {
     const n = name.trim()
     if (!n) { onClose(); return }
-    await addDoc(collection(db, 'families', familyId, 'items'), {
+    const payload = {
       name: n,
       category,
       kind: currentKind,
-      status: initialStatus,
       memo: memo.trim(),
       emoji: pickedEmoji, // null이면 표시할 때 이름으로 자동 매칭
-      checkedInCart: false,
       updatedBy: user.uid,
       updatedAt: serverTimestamp()
-    })
-    setName('')
-    setMemo('')
-    setPickedEmoji(null)
-    setPickedKind(null)
+    }
+    if (isEdit) {
+      await updateDoc(doc(db, 'families', familyId, 'items', item.id), {
+        ...payload,
+        status,
+        checkedInCart: status === 'buying' ? !!item.checkedInCart : false
+      })
+    } else {
+      await addDoc(collection(db, 'families', familyId, 'items'), {
+        ...payload,
+        status: initialStatus,
+        checkedInCart: false
+      })
+      setName('')
+      setMemo('')
+      setPickedEmoji(null)
+      setPickedKind(null)
+    }
+    onClose()
+  }
+
+  async function removeItem() {
+    await deleteDoc(doc(db, 'families', familyId, 'items', item.id))
     onClose()
   }
 
   return (
-    <BottomSheet open={open} onClose={onClose} title="식재료 추가 🧺">
+    <BottomSheet open={open} onClose={onClose} title={isEdit ? '재료 수정 ✏️' : '식재료 추가 🧺'}>
       <div className="text-[12.5px] font-bold text-muted mb-2">이름</div>
       <div className="flex items-center gap-2">
         <span className="w-12 h-12 rounded-[13px] bg-alt grid place-items-center text-[26px] shrink-0" aria-hidden>
           {currentEmoji}
         </span>
         <input
-          autoFocus
+          autoFocus={!isEdit}
           value={name}
           onChange={(e) => { setName(e.target.value); setPickedEmoji(null); setPickedKind(null) }}
           onKeyDown={(e) => e.key === 'Enter' && commit()}
@@ -57,6 +90,27 @@ export default function AddItemSheet({ open, onClose, initialStatus = 'stocked' 
           className="flex-1 min-w-0 border-[1.5px] border-line rounded-btn px-4 py-3 text-[15px] font-semibold bg-alt outline-none focus:border-accent"
         />
       </div>
+
+      {isEdit && (
+        <>
+          <div className="text-[12.5px] font-bold text-muted mb-2 mt-4">상태</div>
+          <div className="flex gap-1.5">
+            {Object.entries(STATUS).map(([key, s]) => (
+              <button
+                key={key}
+                onClick={() => setStatus(key)}
+                className={`flex-1 py-2.5 rounded-[13px] text-[13px] font-extrabold press border-[1.5px] ${
+                  status === key ? 'text-white border-transparent' : 'bg-alt text-muted border-line'
+                }`}
+                style={status === key ? { background: s.color } : undefined}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+
       <div className="text-[12.5px] font-bold text-muted mb-2 mt-4">
         아이콘 <span className="font-semibold">— 이름 쓰면 자동으로 맞춰져요. 직접 골라도 OK</span>
       </div>
@@ -117,8 +171,13 @@ export default function AddItemSheet({ open, onClose, initialStatus = 'stocked' 
         className="w-full mt-6 py-4 rounded-2xl text-[15.5px] font-extrabold text-white bg-accent press disabled:opacity-40"
         style={{ boxShadow: '0 8px 20px rgb(var(--ff-accent) / .4)' }}
       >
-        냉장고에 넣기
+        {isEdit ? '저장' : '냉장고에 넣기'}
       </button>
+      {isEdit && (
+        <button onClick={removeItem} className="w-full mt-3 text-[13px] font-bold text-danger/80 underline press">
+          🗑 이 재료 삭제
+        </button>
+      )}
     </BottomSheet>
   )
 }
