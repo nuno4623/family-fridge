@@ -4,7 +4,7 @@ import { db } from '../firebase'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../components/Toast'
 import { enablePush, disablePush } from '../notifications'
-import { MEMBER_COLORS } from '../utils'
+import { MEMBER_COLORS, storage } from '../utils'
 
 function Toggle({ on, onChange }) {
   return (
@@ -27,7 +27,7 @@ export default function Settings({ onClose }) {
 
   const userRef = doc(db, 'users', user.uid)
   const notify = profile?.notify || {}
-  const pushEnabled = (profile?.fcmTokens || []).includes(localStorage.getItem('fridge:fcmToken'))
+  const pushEnabled = (profile?.fcmTokens || []).includes(storage.get('fridge:fcmToken'))
 
   async function saveName() {
     const n = name.trim()

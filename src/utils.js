@@ -78,6 +78,13 @@ export function greeting() {
   return '오늘 하루도 수고했어요 🌆'
 }
 
+// 사생활 보호 모드 등 localStorage가 막힌 환경에서도 죽지 않게
+export const storage = {
+  get(key) { try { return localStorage.getItem(key) } catch { return null } },
+  set(key, value) { try { localStorage.setItem(key, value) } catch { /* ignore */ } },
+  remove(key) { try { localStorage.removeItem(key) } catch { /* ignore */ } }
+}
+
 export function isIOS() {
   return /iphone|ipad|ipod/i.test(navigator.userAgent)
 }

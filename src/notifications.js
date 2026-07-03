@@ -1,6 +1,7 @@
 import { getMessaging, getToken, isSupported } from 'firebase/messaging'
 import { doc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore'
 import { app, db } from './firebase'
+import { storage } from './utils'
 
 export async function pushSupported() {
   try {
@@ -26,7 +27,7 @@ export async function enablePush(uid) {
       serviceWorkerRegistration: registration
     })
     if (!token) return 'error'
-    localStorage.setItem('fridge:fcmToken', token)
+    storage.set('fridge:fcmToken', token)
     await updateDoc(doc(db, 'users', uid), { fcmTokens: arrayUnion(token) })
     return 'granted'
   } catch (e) {
@@ -36,9 +37,9 @@ export async function enablePush(uid) {
 }
 
 export async function disablePush(uid) {
-  const token = localStorage.getItem('fridge:fcmToken')
+  const token = storage.get('fridge:fcmToken')
   if (token) {
     await updateDoc(doc(db, 'users', uid), { fcmTokens: arrayRemove(token) })
-    localStorage.removeItem('fridge:fcmToken')
+    storage.remove('fridge:fcmToken')
   }
 }

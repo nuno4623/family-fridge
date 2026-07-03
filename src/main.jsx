@@ -25,6 +25,11 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     {isConfigured ? (
       <AuthProvider>
         <ToastProvider>
+          {import.meta.env.VITE_DEMO && (
+            <div className="bg-ink text-bg text-center text-[13px] py-1.5 font-medium">
+              🧪 데모 모드 — 샘플 데이터로 둘러보는 중이에요 (저장되지 않아요)
+            </div>
+          )}
           <App />
         </ToastProvider>
       </AuthProvider>

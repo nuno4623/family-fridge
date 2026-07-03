@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
-import { formatHeaderDate, greeting, todayStr, tomorrowStr, MEMO_COLORS, isIOS, isStandalone } from '../utils'
+import { formatHeaderDate, greeting, todayStr, tomorrowStr, MEMO_COLORS, isIOS, isStandalone, storage } from '../utils'
 import InstallGuide from '../components/InstallGuide'
 
 const LAST_SEEN_KEY = 'fridge:lastSeenAt'
@@ -32,7 +32,7 @@ export default function Home({ items, events, memos, onGoTab, onOpenSettings }) 
   useEffect(() => {
     if (newsComputed.current || !items || !events || !memos || !user) return
     newsComputed.current = true
-    const lastSeen = Number(localStorage.getItem(LAST_SEEN_KEY) || 0)
+    const lastSeen = Number(storage.get(LAST_SEEN_KEY) || 0)
     const isNew = (ts, by) => ts && by !== user.uid && ts.toMillis() > lastSeen
     const result = {
       items: items.filter((i) => isNew(i.updatedAt, i.updatedBy)).length,
@@ -40,7 +40,7 @@ export default function Home({ items, events, memos, onGoTab, onOpenSettings }) 
       memos: memos.filter((m) => isNew(m.createdAt, m.author)).length
     }
     if (lastSeen > 0 && (result.items || result.events || result.memos)) setNews(result)
-    localStorage.setItem(LAST_SEEN_KEY, String(Date.now()))
+    storage.set(LAST_SEEN_KEY, String(Date.now()))
   }, [items, events, memos, user])
 
   const showInstallBanner = isIOS() && !isStandalone()
