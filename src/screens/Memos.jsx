@@ -3,6 +3,7 @@ import { collection, doc, addDoc, updateDoc, deleteDoc, serverTimestamp } from '
 import { db } from '../firebase'
 import { useAuth } from '../contexts/AuthContext'
 import BottomSheet from '../components/BottomSheet'
+import SwipeToDelete from '../components/SwipeToDelete'
 import { MEMO_COLORS, relativeTime } from '../utils'
 
 export default function Memos({ memos, fabTick }) {
@@ -75,34 +76,45 @@ export default function Memos({ memos, fabTick }) {
       <div className="flex gap-3 items-start">
         {cols.map((col, ci) => (
           <div key={ci} className="flex-1 flex flex-col gap-3 min-w-0">
-            {col.map((m) => (
-              <div
-                key={m.id}
-                className="rounded-card shadow-soft px-4 pt-5 pb-3 relative select-none press text-[#4A4238]"
-                style={{ background: MEMO_COLORS[m.color] || MEMO_COLORS.yellow }}
-                onTouchStart={() => startPress(m)}
-                onTouchEnd={endPress}
-                onTouchMove={endPress}
-                onMouseDown={() => startPress(m)}
-                onMouseUp={endPress}
-                onMouseLeave={endPress}
-              >
-                <span
-                  className="absolute top-2 left-1/2 -translate-x-1/2 w-3.5 h-3.5 rounded-full border-2 border-white/80 shadow"
-                  style={{ background: members[m.author]?.color || '#E08A5B' }}
-                />
-                {m.pinned && <span className="absolute top-1.5 right-2 text-[14px]">📌</span>}
-                <p className="text-[14.5px] font-semibold whitespace-pre-wrap break-words leading-relaxed">{m.text}</p>
-                <p className="text-[11.5px] font-semibold opacity-50 mt-2">
-                  {members[m.author]?.name || ''} · {relativeTime(m.createdAt)}
-                </p>
-              </div>
-            ))}
+            {col.map((m) => {
+              const card = (
+                <div
+                  className="rounded-card shadow-soft px-4 pt-5 pb-3 relative select-none press text-[#4A4238]"
+                  style={{ background: MEMO_COLORS[m.color] || MEMO_COLORS.yellow }}
+                  onTouchStart={() => startPress(m)}
+                  onTouchEnd={endPress}
+                  onTouchMove={endPress}
+                  onMouseDown={() => startPress(m)}
+                  onMouseUp={endPress}
+                  onMouseLeave={endPress}
+                >
+                  <span
+                    className="absolute top-2 left-1/2 -translate-x-1/2 w-3.5 h-3.5 rounded-full border-2 border-white/80 shadow"
+                    style={{ background: members[m.author]?.color || '#E08A5B' }}
+                  />
+                  {m.pinned && <span className="absolute top-1.5 right-2 text-[14px]">📌</span>}
+                  <p className="text-[14.5px] font-semibold whitespace-pre-wrap break-words leading-relaxed">{m.text}</p>
+                  <p className="text-[11.5px] font-semibold opacity-50 mt-2">
+                    {members[m.author]?.name || ''} · {relativeTime(m.createdAt)}
+                  </p>
+                </div>
+              )
+              // 내가 쓴 메모만 밀어서 삭제 가능
+              return m.author === user.uid ? (
+                <SwipeToDelete key={m.id} onDelete={() => deleteDoc(doc(memosCol, m.id))}>
+                  {card}
+                </SwipeToDelete>
+              ) : (
+                <div key={m.id}>{card}</div>
+              )
+            })}
           </div>
         ))}
       </div>
 
-      <p className="text-[12px] font-semibold text-muted/70 text-center mt-6">메모를 길게 누르면 고정 · 삭제할 수 있어요</p>
+      <p className="text-[12px] font-semibold text-muted/70 text-center mt-6">
+        길게 누르면 홈에 고정 · 내 메모는 왼쪽으로 밀면 삭제
+      </p>
 
       <BottomSheet open={writing} onClose={() => setWriting(false)} title="새 메모 붙이기 🧲">
         <textarea
