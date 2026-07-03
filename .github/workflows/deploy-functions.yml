@@ -30,4 +30,4 @@ jobs:
       - name: Functions 배포
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
-        run: npx firebase-tools deploy --only functions --project family-fridge-2bee4 --non-interactive
+        run: npx firebase-tools deploy --only functions --project family-fridge-2bee4 --non-interactive --force
