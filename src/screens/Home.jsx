@@ -70,9 +70,10 @@ export default function Home({ items, events, memos, onGoTab, onOpenSettings }) 
         <button
           onClick={onOpenSettings}
           aria-label="설정"
-          className="w-11 h-11 rounded-full bg-accent-soft border border-line grid place-items-center text-[22px] press shrink-0"
+          className="flex items-center gap-1.5 bg-card border border-line rounded-full pl-3 pr-3.5 py-2.5 shadow-card press shrink-0"
         >
-          🧑
+          <span className="text-[17px] leading-none">⚙️</span>
+          <span className="text-[13.5px] font-extrabold">설정</span>
         </button>
       </header>
 
