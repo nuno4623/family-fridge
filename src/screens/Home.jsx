@@ -62,8 +62,9 @@ export default function Home({ items, events, memos, onGoTab, onOpenSettings }) 
     <div className="px-5 pt-5 pb-4 max-w-lg mx-auto">
       <header className="flex items-start justify-between mb-5">
         <div>
-          <p className="text-[13.5px] font-semibold text-muted">
-            안녕하세요, {profile?.name || ''}님 👋 {greeting()}
+          <p className="text-[13.5px] font-semibold text-muted leading-snug">
+            <span className="whitespace-nowrap">안녕하세요, {profile?.name || ''}님 👋</span>{' '}
+            <span className="whitespace-nowrap">{greeting()}</span>
           </p>
           <h1 className="text-[25px] font-extrabold tracking-tight">식구들 🧊</h1>
         </div>
