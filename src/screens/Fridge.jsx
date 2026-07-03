@@ -1,10 +1,11 @@
-import { useMemo, useRef, useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
   collection, doc, addDoc, updateDoc, deleteDoc, serverTimestamp, writeBatch
 } from 'firebase/firestore'
 import { db } from '../firebase'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../components/Toast'
+import SwipeToDelete from '../components/SwipeToDelete'
 import { CATEGORIES, CAT_EMOJI, KINDS, KIND_EMOJI, STATUS, itemEmoji, itemKind, guessKind, storage } from '../utils'
 
 const SEGMENTS = [
@@ -19,7 +20,6 @@ export default function Fridge({ items }) {
   const [seg, setSeg] = useState('stock')
   const [view, setView] = useState(() => storage.get('fridge:view') || 'loc') // 재고 보기 방식
   const [draft, setDraft] = useState('')
-  const pressTimer = useRef(null)
 
   const itemsCol = collection(db, 'families', familyId, 'items')
 
@@ -117,17 +117,6 @@ export default function Fridge({ items }) {
     showToast('냉장고 채웠어요 🎉')
   }
 
-  function startPress(item) {
-    pressTimer.current = setTimeout(() => {
-      if (confirm(`'${item.name}' 항목을 삭제할까요?`)) {
-        deleteDoc(doc(itemsCol, item.id))
-      }
-    }, 600)
-  }
-  function endPress() {
-    clearTimeout(pressTimer.current)
-  }
-
   function StatusPill({ item }) {
     const s = STATUS[item.status] || STATUS.stocked
     return (
@@ -143,26 +132,20 @@ export default function Fridge({ items }) {
 
   function ItemRow({ item, right }) {
     return (
-      <div
-        className="flex items-center gap-3 bg-card rounded-card border border-line shadow-card px-3.5 py-2.5 min-h-[56px] select-none"
-        onTouchStart={() => startPress(item)}
-        onTouchEnd={endPress}
-        onTouchMove={endPress}
-        onMouseDown={() => startPress(item)}
-        onMouseUp={endPress}
-        onMouseLeave={endPress}
-      >
-        <span className="w-11 h-11 rounded-[13px] bg-alt grid place-items-center text-[23px] shrink-0">
-          {itemEmoji(item)}
-        </span>
-        <div className="flex-1 min-w-0">
-          <p className="text-[15px] font-bold truncate">{item.name}</p>
-          <p className="text-[12px] font-semibold text-muted truncate mt-0.5">
-            {members[item.updatedBy]?.name || '가족'}{item.memo ? ` · ${item.memo}` : ''}
-          </p>
+      <SwipeToDelete onDelete={() => deleteDoc(doc(itemsCol, item.id))}>
+        <div className="flex items-center gap-3 bg-card rounded-card border border-line shadow-card px-3.5 py-2.5 min-h-[56px] select-none">
+          <span className="w-11 h-11 rounded-[13px] bg-alt grid place-items-center text-[23px] shrink-0">
+            {itemEmoji(item)}
+          </span>
+          <div className="flex-1 min-w-0">
+            <p className="text-[15px] font-bold truncate">{item.name}</p>
+            <p className="text-[12px] font-semibold text-muted truncate mt-0.5">
+              {members[item.updatedBy]?.name || '가족'}{item.memo ? ` · ${item.memo}` : ''}
+            </p>
+          </div>
+          {right}
         </div>
-        {right}
-      </div>
+      </SwipeToDelete>
     )
   }
 
@@ -234,7 +217,7 @@ export default function Fridge({ items }) {
               ) : null
             )}
             <p className="text-[12px] font-semibold text-muted/70 text-center">
-              상태 버튼: 충분 → 곧 떨어짐 → 떨어짐 순환 · 길게 누르면 삭제
+              상태 버튼: 충분 → 곧 떨어짐 → 떨어짐 순환 · 왼쪽으로 밀면 삭제
             </p>
           </div>
         )}
@@ -293,27 +276,31 @@ export default function Fridge({ items }) {
               </p>
             )}
             {cartList.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => toggleChecked(item)}
-                className={`flex items-center gap-3.5 rounded-card border border-line px-3.5 py-3.5 min-h-[60px] press text-left ${
-                  item.checkedInCart ? 'bg-alt opacity-60' : 'bg-card shadow-card'
-                }`}
-              >
-                <span
-                  className={`w-6 h-6 rounded-lg grid place-items-center text-[14px] font-extrabold text-white shrink-0 ${
-                    item.checkedInCart ? 'bg-accent' : 'border-2 border-line bg-transparent'
+              <SwipeToDelete key={item.id} onDelete={() => deleteDoc(doc(itemsCol, item.id))}>
+                <button
+                  onClick={() => toggleChecked(item)}
+                  className={`flex items-center gap-3.5 w-full rounded-card border border-line px-3.5 py-3.5 min-h-[60px] press text-left ${
+                    item.checkedInCart ? 'bg-alt opacity-60' : 'bg-card shadow-card'
                   }`}
                 >
-                  {item.checkedInCart ? '✓' : ''}
-                </span>
-                <span className="text-[22px]">{itemEmoji(item)}</span>
-                <span className={`text-[15px] font-bold flex-1 ${item.checkedInCart ? 'line-through' : ''}`}>
-                  {item.name}
-                </span>
-                {item.memo && <span className="text-[12px] font-semibold text-muted">{item.memo}</span>}
-              </button>
+                  <span
+                    className={`w-6 h-6 rounded-lg grid place-items-center text-[14px] font-extrabold text-white shrink-0 ${
+                      item.checkedInCart ? 'bg-accent' : 'border-2 border-line bg-transparent'
+                    }`}
+                  >
+                    {item.checkedInCart ? '✓' : ''}
+                  </span>
+                  <span className="text-[22px]">{itemEmoji(item)}</span>
+                  <span className={`text-[15px] font-bold flex-1 ${item.checkedInCart ? 'line-through' : ''}`}>
+                    {item.name}
+                  </span>
+                  {item.memo && <span className="text-[12px] font-semibold text-muted">{item.memo}</span>}
+                </button>
+              </SwipeToDelete>
             ))}
+            {cartList.length > 0 && (
+              <p className="text-[12px] font-semibold text-muted/70 text-center mt-1">왼쪽으로 밀면 목록에서 삭제돼요</p>
+            )}
             {cartList.length > 0 && (
               <button
                 onClick={finishShopping}

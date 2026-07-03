@@ -6,9 +6,10 @@ import BottomSheet from '../components/BottomSheet'
 import { toDateStr, todayStr, formatShortDate, occursOn, eventExtraLabel, REPEATS } from '../utils'
 
 const DAY_NAMES = ['일', '월', '화', '수', '목', '금', '토']
-const MAX_LANES = 3 // 한 주에 겹쳐 보여줄 일정 막대 수
-const NUM_ROW = 26 // 날짜 숫자 영역 높이(px)
-const BAR_H = 17 // 일정 막대 한 줄 높이(px)
+const MAX_LANES = 4 // 한 주에 겹쳐 보여줄 일정 막대 수
+const NUM_ROW = 30 // 날짜 숫자 영역 높이(px)
+const BAR_H = 23 // 일정 막대 한 줄 높이(px)
+const MIN_WEEK_H = 92 // 타임트리처럼 넉넉한 주 높이
 
 export default function Calendar({ events, fabTick }) {
   const { user, members, familyId } = useAuth()
@@ -118,8 +119,8 @@ export default function Calendar({ events, fabTick }) {
   }, [events, selected])
 
   return (
-    <div className="px-4 pt-5 pb-4 max-w-lg mx-auto">
-      <div className="flex justify-between items-center mb-4 px-1">
+    <div className="pt-5 pb-4 max-w-lg mx-auto">
+      <div className="flex justify-between items-center mb-4 px-4">
         <div>
           <h1 className="text-[25px] font-extrabold tracking-tight">
             {cursor.getFullYear()}년 {cursor.getMonth() + 1}월
@@ -134,19 +135,21 @@ export default function Calendar({ events, fabTick }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-7 mb-1">
-        {DAY_NAMES.map((d, i) => (
-          <div key={d} className={`text-center text-[11px] font-bold py-1 ${i === 0 ? 'text-danger' : 'text-muted'}`}>{d}</div>
-        ))}
-      </div>
+      <div className="bg-card border-y border-line">
+        <div className="grid grid-cols-7 border-b border-line">
+          {DAY_NAMES.map((d, i) => (
+            <div key={d} className={`text-center text-[11.5px] font-bold py-1.5 ${
+              i === 0 ? 'text-danger' : i === 6 ? 'text-[#3B82F6]' : 'text-muted'
+            }`}>{d}</div>
+          ))}
+        </div>
 
-      <div className="flex flex-col gap-1 bg-card border border-line rounded-tile p-1.5 shadow-card">
         {weeks.map((week, wi) => {
           const spans = weekSpans[wi]
           const laneCount = Math.min(MAX_LANES, spans.reduce((m, sp) => Math.max(m, sp.lane + 1), 0))
-          const height = NUM_ROW + laneCount * BAR_H + 4
+          const height = Math.max(NUM_ROW + laneCount * BAR_H + 6, MIN_WEEK_H)
           return (
-            <div key={wi} className="relative" style={{ height: Math.max(height, 46) }}>
+            <div key={wi} className="relative border-b border-line last:border-b-0" style={{ height }}>
               <div className="grid grid-cols-7 h-full">
                 {week.map((cell, ci) => {
                   if (!cell) return <div key={ci} />
@@ -157,11 +160,13 @@ export default function Calendar({ events, fabTick }) {
                     <button
                       key={ci}
                       onClick={() => setSelected(ds)}
-                      className={`relative h-full rounded-[10px] press ${isSelected ? 'bg-accent-soft' : ''}`}
+                      className={`relative h-full ${isSelected ? 'bg-accent-soft/50' : ''}`}
                     >
                       <span
-                        className={`inline-grid place-items-center w-[22px] h-[22px] mt-0.5 rounded-full text-[13px] ${
-                          isToday ? 'bg-accent text-white font-extrabold' : ci === 0 ? 'text-danger font-semibold' : 'font-semibold'
+                        className={`absolute top-1 left-1/2 -translate-x-1/2 grid place-items-center w-[24px] h-[24px] rounded-full text-[14px] ${
+                          isToday
+                            ? 'bg-accent text-white font-extrabold'
+                            : ci === 0 ? 'text-danger font-semibold' : ci === 6 ? 'text-[#3B82F6] font-semibold' : 'font-semibold'
                         }`}
                       >
                         {cell.getDate()}
@@ -173,14 +178,14 @@ export default function Calendar({ events, fabTick }) {
               {spans.filter((sp) => sp.lane < MAX_LANES).map((sp, si) => (
                 <div
                   key={si}
-                  className="absolute pointer-events-none text-white text-[10px] font-bold truncate px-1.5"
+                  className="absolute pointer-events-none text-white text-[11.5px] font-bold truncate px-1.5"
                   style={{
-                    left: `calc(${(sp.s / 7) * 100}% + 2px)`,
-                    width: `calc(${((sp.e - sp.s + 1) / 7) * 100}% - 4px)`,
+                    left: `calc(${(sp.s / 7) * 100}% + 1.5px)`,
+                    width: `calc(${((sp.e - sp.s + 1) / 7) * 100}% - 3px)`,
                     top: NUM_ROW + sp.lane * BAR_H,
-                    height: BAR_H - 2,
-                    lineHeight: `${BAR_H - 2}px`,
-                    borderRadius: 7,
+                    height: BAR_H - 3,
+                    lineHeight: `${BAR_H - 3}px`,
+                    borderRadius: 6,
                     background: members[sp.ev.owner]?.color || 'rgb(var(--ff-accent))'
                   }}
                 >
@@ -192,7 +197,7 @@ export default function Calendar({ events, fabTick }) {
         })}
       </div>
 
-      <p className="text-[12px] font-semibold text-muted/70 text-center mt-3">
+      <p className="text-[12px] font-semibold text-muted/70 text-center mt-3 px-4">
         날짜를 누르면 일정을 보고 추가할 수 있어요 · 막대 색은 등록한 가족
       </p>
 
