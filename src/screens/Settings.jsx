@@ -36,6 +36,7 @@ export default function Settings({ onClose }) {
   const [name, setName] = useState(profile?.name || '')
   const [famName, setFamName] = useState(family?.name || '')
   const [busy, setBusy] = useState(false)
+  const [leaveArm, setLeaveArm] = useState(false) // 가족 나가기 2단계 확인
 
   useEffect(() => {
     if (family?.name) setFamName(family.name)
@@ -257,7 +258,12 @@ export default function Settings({ onClose }) {
 
         <button
           onClick={async () => {
-            if (!confirm('이 가족에서 나갈까요?\n실수로 가족을 잘못 만들었을 때 사용하세요. 초대코드로 다시 참여할 수 있어요.')) return
+            // 브라우저 확인 창(confirm)은 카톡 인앱 브라우저에서 무시되므로 두 번 탭 방식 사용
+            if (!leaveArm) {
+              setLeaveArm(true)
+              setTimeout(() => setLeaveArm(false), 5000)
+              return
+            }
             const familyId = profile?.familyId
             // 내 문서 먼저 비우고(화면 전환), 가족 멤버 목록에서도 제거 (실패해도 무방)
             await updateDoc(userRef, { familyId: null })
@@ -267,9 +273,13 @@ export default function Settings({ onClose }) {
               } catch { /* 이미 권한이 없어졌으면 무시 */ }
             }
           }}
-          className="w-full mt-3 text-[13px] font-bold text-danger/80 underline press"
+          className={`w-full mt-3 press ${
+            leaveArm
+              ? 'py-3.5 rounded-btn text-[14.5px] font-extrabold text-white bg-danger'
+              : 'text-[13px] font-bold text-danger/80 underline'
+          }`}
         >
-          가족 나가기 (잘못 만들었을 때)
+          {leaveArm ? '⚠️ 한 번 더 누르면 가족에서 나가요! (초대코드로 재참여 가능)' : '가족 나가기 (잘못 만들었을 때)'}
         </button>
       </div>
     </div>

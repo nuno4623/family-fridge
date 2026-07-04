@@ -18,6 +18,7 @@ export default function Calendar({ events, fabTick }) {
   const [selected, setSelected] = useState(null) // 'YYYY-MM-DD'
   const [adding, setAdding] = useState(false)
   const [rangeMode, setRangeMode] = useState(null) // null | 'start' | 'end' — 캘린더에서 기간 잡는 중
+  const [armDelete, setArmDelete] = useState(null) // 두 번 탭 삭제 확인용 일정 id
   const [form, setForm] = useState({ title: '', time: '', memo: '', startDate: '', endDate: '', repeat: 'none' })
   const today = todayStr()
   const lastTick = useRef(fabTick)
@@ -171,14 +172,15 @@ export default function Calendar({ events, fabTick }) {
     setAdding(false)
   }
 
+  // 브라우저 확인 창 대신 두 번 탭 방식 (카톡 인앱 브라우저에서도 동작)
   function removeEvent(ev) {
-    const isRepeat = (ev.repeat || 'none') !== 'none'
-    const msg = isRepeat
-      ? `'${ev.title}' 반복 일정을 삭제할까요? (모든 반복이 함께 지워져요)`
-      : `'${ev.title}' 일정을 삭제할까요?`
-    if (confirm(msg)) {
-      deleteDoc(doc(db, 'families', familyId, 'events', ev.id))
+    if (armDelete !== ev.id) {
+      setArmDelete(ev.id)
+      setTimeout(() => setArmDelete((a) => (a === ev.id ? null : a)), 4000)
+      return
     }
+    deleteDoc(doc(db, 'families', familyId, 'events', ev.id))
+    setArmDelete(null)
   }
 
   const selectedEvents = useMemo(() => {
@@ -330,7 +332,14 @@ export default function Calendar({ events, fabTick }) {
                   </p>
                 </div>
                 {ev.owner === user.uid && (
-                  <button onClick={() => removeEvent(ev)} className="text-[13px] font-bold text-muted p-2 press">삭제</button>
+                  <button
+                    onClick={() => removeEvent(ev)}
+                    className={`text-[13px] font-bold p-2 press whitespace-nowrap ${
+                      armDelete === ev.id ? 'text-white bg-danger rounded-btn font-extrabold' : 'text-muted'
+                    }`}
+                  >
+                    {armDelete === ev.id ? '한 번 더!' : '삭제'}
+                  </button>
                 )}
               </div>
             )

@@ -43,10 +43,9 @@ export default function Memos({ memos, fabTick }) {
     setActionMemo(null)
   }
 
+  // 길게 누르기 → 시트에서 삭제를 고른 것 자체가 의도적이므로 바로 삭제
   function removeMemo(memo) {
-    if (confirm('이 메모를 삭제할까요?')) {
-      deleteDoc(doc(memosCol, memo.id))
-    }
+    deleteDoc(doc(memosCol, memo.id))
     setActionMemo(null)
   }
 
