@@ -225,7 +225,9 @@ export default function Settings({ onClose }) {
               const text = [
                 `🧊 우리 가족 앱 '식구들'에 초대해요!`,
                 '',
-                `1. 링크 열기: ${location.origin}`,
+                location.origin,
+                '',
+                '1. 위 링크를 꾹 눌러 → 다른 브라우저로 열기 (카톡 안에서는 로그인이 안 돼요!)',
                 '2. 구글로 로그인',
                 `3. '초대코드 입력' 누르고 → ${family?.inviteCode || ''}`,
                 '',

@@ -1,10 +1,24 @@
 import { useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 
+// 카카오톡·인스타그램 등 인앱 브라우저에서는 구글 로그인이 차단됨
+function inAppBrowser() {
+  return /KAKAOTALK|Instagram|FBAN|FBAV|Line\//i.test(navigator.userAgent)
+}
+
+function isKakao() {
+  return /KAKAOTALK/i.test(navigator.userAgent)
+}
+
 export default function Login() {
   const { login } = useAuth()
   const [error, setError] = useState(null)
   const [busy, setBusy] = useState(false)
+
+  function openExternal() {
+    // 카카오톡 인앱 브라우저 → 기본 브라우저로 탈출
+    location.href = 'kakaotalk://web/openExternal?url=' + encodeURIComponent(location.href)
+  }
 
   async function handleLogin() {
     setBusy(true)
@@ -31,6 +45,27 @@ export default function Login() {
       <p className="text-[15px] font-semibold text-muted mb-10 text-center">
         한솥밥 먹는 우리 가족의<br />일정 · 냉장고 · 메모
       </p>
+
+      {inAppBrowser() && (
+        <div className="w-full max-w-xs mb-6 bg-warn/15 border border-warn/40 rounded-card p-4">
+          <p className="text-[14px] font-bold leading-relaxed mb-3">
+            ⚠️ 카카오톡 안에서 열면 <b>구글 로그인이 안 돼요.</b><br />
+            브라우저로 열어 주세요!
+          </p>
+          {isKakao() ? (
+            <button
+              onClick={openExternal}
+              className="w-full py-3.5 rounded-btn text-[15px] font-extrabold text-white bg-accent press"
+            >
+              기본 브라우저로 열기
+            </button>
+          ) : (
+            <p className="text-[13px] font-semibold text-muted">
+              오른쪽 위 ⋮ 메뉴 → <b>"다른 브라우저로 열기"</b>를 눌러 주세요
+            </p>
+          )}
+        </div>
+      )}
       <button
         onClick={handleLogin}
         disabled={busy}
