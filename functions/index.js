@@ -60,7 +60,7 @@ exports.onItemWrite = onDocumentWritten('families/{familyId}/items/{itemId}', as
   if (!after) return
   if (after.status !== 'out' || (before && before.status === 'out')) return
 
-  const name = await actorName(after.updatedBy)
+  const name = after.updatedByName || await actorName(after.updatedBy)
   await notifyFamily(
     event.params.familyId,
     after.updatedBy,
@@ -73,7 +73,7 @@ exports.onItemWrite = onDocumentWritten('families/{familyId}/items/{itemId}', as
 // 2) 새 일정 알림
 exports.onEventCreate = onDocumentCreated('families/{familyId}/events/{eventId}', async (event) => {
   const data = event.data.data()
-  const name = await actorName(data.owner)
+  const name = data.ownerName || await actorName(data.owner)
   const [, m, d] = (data.date || '').split('-').map(Number)
   const when = m && d ? `${m}월 ${d}일${data.time ? ' ' + data.time : ''}` : ''
   await notifyFamily(
@@ -88,7 +88,7 @@ exports.onEventCreate = onDocumentCreated('families/{familyId}/events/{eventId}'
 // 3) 새 메모 알림
 exports.onMemoCreate = onDocumentCreated('families/{familyId}/memos/{memoId}', async (event) => {
   const data = event.data.data()
-  const name = await actorName(data.author)
+  const name = data.authorName || await actorName(data.author)
   const preview = (data.text || '').slice(0, 30)
   await notifyFamily(
     event.params.familyId,

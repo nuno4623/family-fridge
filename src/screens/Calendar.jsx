@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { collection, doc, addDoc, deleteDoc, serverTimestamp } from 'firebase/firestore'
+import { collection, doc, addDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '../firebase'
 import { useAuth } from '../contexts/AuthContext'
 import BottomSheet from '../components/BottomSheet'
@@ -13,12 +13,13 @@ const BAR_H = 23 // 일정 막대 한 줄 높이(px)
 const MIN_WEEK_H = 92 // 타임트리처럼 넉넉한 주 높이
 
 export default function Calendar({ events, fabTick }) {
-  const { user, members, familyId } = useAuth()
+  const { user, profile, members, familyId } = useAuth()
   const [cursor, setCursor] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1) })
   const [selected, setSelected] = useState(null) // 'YYYY-MM-DD'
   const [adding, setAdding] = useState(false)
   const [rangeMode, setRangeMode] = useState(null) // null | 'start' | 'end' — 캘린더에서 기간 잡는 중
   const [armDelete, setArmDelete] = useState(null) // 두 번 탭 삭제 확인용 일정 id
+  const [editingId, setEditingId] = useState(null) // 수정 중인 일정 id (null이면 새로 추가)
   const [form, setForm] = useState({ title: '', time: '', memo: '', startDate: '', endDate: '', repeat: 'none' })
   const today = todayStr()
   const lastTick = useRef(fabTick)
@@ -132,7 +133,21 @@ export default function Calendar({ events, fabTick }) {
   }
 
   function openAddForm() {
-    setForm((f) => ({ ...f, startDate: selected || today }))
+    setEditingId(null)
+    setForm({ title: '', time: '', memo: '', startDate: selected || today, endDate: '', repeat: 'none' })
+    setAdding(true)
+  }
+
+  function startEdit(ev) {
+    setEditingId(ev.id)
+    setForm({
+      title: ev.title || '',
+      time: ev.time || '',
+      memo: ev.memo || '',
+      startDate: ev.date || selected || today,
+      endDate: ev.endDate || '',
+      repeat: ev.repeat || 'none'
+    })
     setAdding(true)
   }
 
@@ -154,21 +169,30 @@ export default function Calendar({ events, fabTick }) {
     setRangeMode(null)
   }
 
-  async function addEvent() {
+  async function saveEvent() {
     if (!form.title.trim()) return
     const start = form.startDate || selected || today
     const multiEnd = form.repeat === 'none' && form.endDate && form.endDate > start ? form.endDate : null
-    await addDoc(collection(db, 'families', familyId, 'events'), {
+    const payload = {
       title: form.title.trim(),
       date: start,
       endDate: multiEnd,
       repeat: form.repeat,
       time: form.time || null,
-      owner: user.uid,
-      memo: form.memo.trim(),
-      createdAt: serverTimestamp()
-    })
+      memo: form.memo.trim()
+    }
+    if (editingId) {
+      await updateDoc(doc(db, 'families', familyId, 'events', editingId), payload)
+    } else {
+      await addDoc(collection(db, 'families', familyId, 'events'), {
+        ...payload,
+        owner: user.uid,
+        ownerName: profile?.name || '',
+        createdAt: serverTimestamp()
+      })
+    }
     setForm({ title: '', time: '', memo: '', startDate: '', endDate: '', repeat: 'none' })
+    setEditingId(null)
     setAdding(false)
   }
 
@@ -302,7 +326,7 @@ export default function Calendar({ events, fabTick }) {
         옆으로 밀면 달 이동 · 날짜를 누르면 일정 보기 · 막대 색은 등록한 가족
       </p>
 
-      <BottomSheet open={!!selected && !rangeMode} onClose={() => { setSelected(null); setAdding(false) }} title={selected ? `${formatShortDate(selected)} 📌` : ''}>
+      <BottomSheet open={!!selected && !rangeMode} onClose={() => { setSelected(null); setAdding(false); setEditingId(null) }} title={selected ? `${formatShortDate(selected)} 📌` : ''}>
         <div className="flex flex-col gap-2.5 mb-4">
           {selected && getHoliday(selected) && (
             <div className="flex items-center gap-2.5 rounded-card px-3.5 py-3 bg-danger/10">
@@ -332,14 +356,24 @@ export default function Calendar({ events, fabTick }) {
                   </p>
                 </div>
                 {ev.owner === user.uid && (
-                  <button
-                    onClick={() => removeEvent(ev)}
-                    className={`text-[13px] font-bold p-2 press whitespace-nowrap ${
-                      armDelete === ev.id ? 'text-white bg-danger rounded-btn font-extrabold' : 'text-muted'
-                    }`}
-                  >
-                    {armDelete === ev.id ? '한 번 더!' : '삭제'}
-                  </button>
+                  <div className="flex items-center gap-1 shrink-0">
+                    {armDelete !== ev.id && (
+                      <button
+                        onClick={() => startEdit(ev)}
+                        className="text-[13px] font-bold text-accent px-2 py-2 press whitespace-nowrap"
+                      >
+                        수정
+                      </button>
+                    )}
+                    <button
+                      onClick={() => removeEvent(ev)}
+                      className={`text-[13px] font-bold px-2 py-2 press whitespace-nowrap ${
+                        armDelete === ev.id ? 'text-white bg-danger rounded-btn font-extrabold' : 'text-muted'
+                      }`}
+                    >
+                      {armDelete === ev.id ? '한 번 더 탭!' : '삭제'}
+                    </button>
+                  </div>
                 )}
               </div>
             )
@@ -348,6 +382,7 @@ export default function Calendar({ events, fabTick }) {
 
         {adding ? (
           <div className="flex flex-col gap-3">
+            {editingId && <p className="text-[13px] font-extrabold text-accent">✏️ 일정 수정</p>}
             <input
               autoFocus
               value={form.title}
@@ -404,14 +439,14 @@ export default function Calendar({ events, fabTick }) {
               className="bg-alt border-[1.5px] border-line rounded-btn px-4 py-3 text-[15px] font-semibold outline-none focus:border-accent"
             />
             <div className="flex gap-2">
-              <button onClick={() => setAdding(false)} className="w-[90px] py-3.5 rounded-2xl border-[1.5px] border-line text-[14.5px] font-bold press">취소</button>
+              <button onClick={() => { setAdding(false); setEditingId(null) }} className="w-[90px] py-3.5 rounded-2xl border-[1.5px] border-line text-[14.5px] font-bold press">취소</button>
               <button
-                onClick={addEvent}
+                onClick={saveEvent}
                 disabled={!form.title.trim()}
                 className="flex-1 py-3.5 rounded-2xl text-[15px] font-extrabold text-white bg-accent press disabled:opacity-40"
                 style={{ boxShadow: '0 8px 20px rgb(var(--ff-accent) / .4)' }}
               >
-                일정 추가
+                {editingId ? '저장' : '일정 추가'}
               </button>
             </div>
           </div>

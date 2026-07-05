@@ -7,7 +7,7 @@ import SwipeToDelete from '../components/SwipeToDelete'
 import { MEMO_COLORS, relativeTime } from '../utils'
 
 export default function Memos({ memos, fabTick }) {
-  const { user, familyId, members } = useAuth()
+  const { user, profile, familyId, members } = useAuth()
   const [writing, setWriting] = useState(false)
   const [text, setText] = useState('')
   const [color, setColor] = useState('yellow')
@@ -31,6 +31,7 @@ export default function Memos({ memos, fabTick }) {
       text: text.trim(),
       color,
       author: user.uid,
+      authorName: profile?.name || '',
       pinned: false,
       createdAt: serverTimestamp()
     })

@@ -16,7 +16,8 @@ const SEGMENTS = [
 ]
 
 export default function Fridge({ items }) {
-  const { user, familyId, members } = useAuth()
+  const { user, profile, familyId, members } = useAuth()
+  const myName = profile?.name || ''
   const showToast = useToast()
   const [seg, setSeg] = useState('stock')
   const [view, setView] = useState(() => storage.get('fridge:view') || 'loc') // 재고 보기 방식
@@ -72,6 +73,7 @@ export default function Fridge({ items }) {
       emoji: null,
       checkedInCart: false,
       updatedBy: user.uid,
+      updatedByName: myName,
       updatedAt: serverTimestamp()
     })
   }
@@ -82,6 +84,7 @@ export default function Fridge({ items }) {
       status: next,
       checkedInCart: false,
       updatedBy: user.uid,
+      updatedByName: myName,
       updatedAt: serverTimestamp()
     })
   }
@@ -91,6 +94,7 @@ export default function Fridge({ items }) {
       status: 'buying',
       checkedInCart: false,
       updatedBy: user.uid,
+      updatedByName: myName,
       updatedAt: serverTimestamp()
     })
   }
@@ -99,6 +103,7 @@ export default function Fridge({ items }) {
     updateDoc(doc(itemsCol, item.id), {
       checkedInCart: !item.checkedInCart,
       updatedBy: user.uid,
+      updatedByName: myName,
       updatedAt: serverTimestamp()
     })
   }
@@ -112,6 +117,7 @@ export default function Fridge({ items }) {
         status: 'stocked',
         checkedInCart: false,
         updatedBy: user.uid,
+        updatedByName: myName,
         updatedAt: serverTimestamp()
       })
     }

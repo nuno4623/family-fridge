@@ -9,7 +9,7 @@ const EMOJI_OPTIONS = ['🥚', '🥛', '🥬', '🍎', '🥩', '🍗', '🐟', '
 
 // 식재료 추가 + 수정 시트 (item이 있으면 수정 모드)
 export default function AddItemSheet({ open, onClose, initialStatus = 'stocked', item = null }) {
-  const { user, familyId } = useAuth()
+  const { user, profile, familyId } = useAuth()
   const isEdit = !!item
   const [name, setName] = useState('')
   const [category, setCategory] = useState('냉장')
@@ -47,6 +47,7 @@ export default function AddItemSheet({ open, onClose, initialStatus = 'stocked',
       memo: memo.trim(),
       emoji: pickedEmoji, // null이면 표시할 때 이름으로 자동 매칭
       updatedBy: user.uid,
+      updatedByName: profile?.name || '',
       updatedAt: serverTimestamp()
     }
     if (isEdit) {
