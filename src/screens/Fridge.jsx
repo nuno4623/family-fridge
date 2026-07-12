@@ -1,13 +1,35 @@
 import { useMemo, useState } from 'react'
 import {
-  collection, doc, addDoc, updateDoc, deleteDoc, serverTimestamp, writeBatch
+  collection, doc, addDoc, updateDoc, deleteDoc, serverTimestamp, writeBatch, Timestamp
 } from 'firebase/firestore'
 import { db } from '../firebase'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../components/Toast'
 import SwipeToDelete from '../components/SwipeToDelete'
 import AddItemSheet from '../components/AddItemSheet'
-import { CATEGORIES, CAT_EMOJI, KINDS, KIND_EMOJI, STATUS, itemEmoji, itemKind, guessKind, storage } from '../utils'
+import {
+  CATEGORIES, CAT_EMOJI, KINDS, KIND_EMOJI, STATUS, itemEmoji, itemKind, guessKind, storage,
+  guessShelfLifeDays, addDays, todayStr, itemDaysLeft, expiryLabel, expiryTone
+} from '../utils'
+
+const TONE_COLOR = {
+  over: 'rgb(var(--ff-danger))',
+  soon: 'rgb(var(--ff-warn))',
+  ok: 'rgb(var(--ff-good))'
+}
+
+// 오늘 구매한 것으로 간주하고 purchasedAt/expiresAt을 새로 계산
+function freshDates(name, category) {
+  const today = todayStr()
+  const [y, m, d] = today.split('-').map(Number)
+  const purchased = new Date(y, m - 1, d)
+  const days = guessShelfLifeDays(name, category)
+  return {
+    purchasedAt: Timestamp.fromDate(purchased),
+    expiresAt: days == null ? null : Timestamp.fromDate(addDays(purchased, days)),
+    shelfLifeDays: days
+  }
+}
 
 const SEGMENTS = [
   { key: 'stock', label: '재고' },
@@ -45,6 +67,20 @@ export default function Fridge({ items }) {
         ['out', '🔴 떨어짐'], ['low', '🟡 곧 떨어짐'], ['buying', '🛒 장바구니'], ['stocked', '🟢 충분']
       ].map(([s, title]) => ({ key: s, title, items: list.filter((i) => i.status === s) }))
     }
+    if (view === 'expiry') {
+      const withDays = list.map((i) => ({ item: i, d: itemDaysLeft(i) }))
+      const buckets = [
+        ['over', '🔴 지남', (d) => d !== null && d < 0],
+        ['today', '🟠 오늘까지', (d) => d === 0],
+        ['soon', '🟡 임박 (3일 이내)', (d) => d !== null && d > 0 && d <= 3],
+        ['ok', '🟢 여유 있음', (d) => d !== null && d > 3],
+        ['none', '⚪ 기한 없음', (d) => d === null]
+      ]
+      return buckets.map(([key, title, test]) => {
+        const bucketItems = withDays.filter(({ d }) => test(d)).sort((a, b) => (a.d ?? 9999) - (b.d ?? 9999)).map(({ item }) => item)
+        return { key, title, items: bucketItems }
+      })
+    }
     const map = {}
     for (const c of CATEGORIES) map[c] = []
     for (const it of list) (map[it.category] || map['기타']).push(it)
@@ -72,6 +108,7 @@ export default function Fridge({ items }) {
       memo: '',
       emoji: null,
       checkedInCart: false,
+      ...freshDates(n, '기타'),
       updatedBy: user.uid,
       updatedByName: myName,
       updatedAt: serverTimestamp()
@@ -138,6 +175,20 @@ export default function Fridge({ items }) {
     )
   }
 
+  function ExpiryBadge({ item }) {
+    const d = itemDaysLeft(item)
+    if (d === null) return null
+    const tone = expiryTone(d)
+    return (
+      <span
+        className="text-[10.5px] font-extrabold text-white px-1.5 py-0.5 rounded-full whitespace-nowrap shrink-0"
+        style={{ background: TONE_COLOR[tone] }}
+      >
+        {expiryLabel(d)}
+      </span>
+    )
+  }
+
   function ItemRow({ item, right }) {
     return (
       <SwipeToDelete onDelete={() => deleteDoc(doc(itemsCol, item.id))}>
@@ -147,7 +198,10 @@ export default function Fridge({ items }) {
               {itemEmoji(item)}
             </span>
             <div className="flex-1 min-w-0">
-              <p className="text-[15px] font-bold truncate">{item.name}</p>
+              <div className="flex items-center gap-1.5">
+                <p className="text-[15px] font-bold truncate">{item.name}</p>
+                <ExpiryBadge item={item} />
+              </div>
               <p className="text-[12px] font-semibold text-muted truncate mt-0.5">
                 {members[item.updatedBy]?.name || '가족'}{item.memo ? ` · ${item.memo}` : ''}
               </p>
@@ -195,7 +249,7 @@ export default function Fridge({ items }) {
           <div className="flex flex-col gap-5">
             <div className="flex items-center gap-1.5">
               <span className="text-[12px] font-bold text-muted mr-1">보기</span>
-              {[['loc', '위치별'], ['kind', '종류별'], ['status', '상태순']].map(([v, label]) => (
+              {[['loc', '위치별'], ['kind', '종류별'], ['status', '상태순'], ['expiry', '유통기한순']].map(([v, label]) => (
                 <button
                   key={v}
                   onClick={() => changeView(v)}
@@ -304,6 +358,7 @@ export default function Fridge({ items }) {
                   <span className={`text-[15px] font-bold flex-1 ${item.checkedInCart ? 'line-through' : ''}`}>
                     {item.name}
                   </span>
+                  <ExpiryBadge item={item} />
                   {item.memo && <span className="text-[12px] font-semibold text-muted">{item.memo}</span>}
                 </button>
               </SwipeToDelete>

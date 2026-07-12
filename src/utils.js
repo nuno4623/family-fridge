@@ -69,6 +69,105 @@ export function itemKind(item) {
   return item.kind || guessKind(item.name) || '기타'
 }
 
+// ---------- 유통기한 자동 계산 ----------
+// 품목별 기본 소비기한(일). 보관 위치에 따라 다르면 {냉장,냉동,실온,기타} 객체, 아니면 숫자 하나.
+const SHELF_LIFE_BY_NAME = [
+  ['두부', 5], ['우유', 9], ['계란', 30], ['달걀', 30], ['요거트', 14], ['요구르트', 14],
+  ['치즈', 21], ['버터', 60],
+  ['대파', 14], ['파', 14], ['양파', 30], ['마늘', 30], ['감자', 30], ['고구마', 21],
+  ['당근', 21], ['오이', 7], ['상추', 7], ['시금치', 5], ['깻잎', 10], ['배추', 14],
+  ['양배추', 21], ['토마토', 7], ['브로콜리', 7], ['버섯', 7], ['가지', 7], ['옥수수', 5],
+  ['사과', 21], ['바나나', 5], ['딸기', 3], ['포도', 7], ['수박', 7], ['귤', 14],
+  ['오렌지', 14], ['레몬', 21], ['복숭아', 5], ['키위', 14], ['블루베리', 7], ['아보카도', 5],
+  ['소고기', { 냉장: 3, 냉동: 90, 실온: 1, 기타: 3 }],
+  ['돼지', { 냉장: 3, 냉동: 90, 실온: 1, 기타: 3 }],
+  ['삼겹', { 냉장: 3, 냉동: 90, 실온: 1, 기타: 3 }],
+  ['고기', { 냉장: 3, 냉동: 90, 실온: 1, 기타: 3 }],
+  ['닭', { 냉장: 2, 냉동: 180, 실온: 1, 기타: 2 }],
+  ['치킨', { 냉장: 2, 냉동: 180, 실온: 1, 기타: 2 }],
+  ['햄', 14], ['소시지', 14],
+  ['고등어', { 냉장: 2, 냉동: 90, 실온: 1, 기타: 2 }],
+  ['갈치', { 냉장: 2, 냉동: 90, 실온: 1, 기타: 2 }],
+  ['연어', { 냉장: 2, 냉동: 90, 실온: 1, 기타: 2 }],
+  ['생선', { 냉장: 2, 냉동: 90, 실온: 1, 기타: 2 }],
+  ['새우', { 냉장: 2, 냉동: 90, 실온: 1, 기타: 2 }],
+  ['오징어', { 냉장: 2, 냉동: 90, 실온: 1, 기타: 2 }],
+  ['참치', 730], // 통조림
+  ['김치', 60],
+  ['만두', { 냉장: 3, 냉동: 60, 실온: 1, 기타: 3 }],
+  ['라면', 180], ['국수', 180], ['파스타', 365],
+  ['식빵', 5], ['빵', 4], ['떡', 5],
+  ['쌀', 180],
+  ['생수', 365], ['물', 365],
+  ['된장', 365], ['고추장', 365], ['간장', 730], ['소금', 1095], ['설탕', 1095],
+  ['참기름', 180], ['기름', 365], ['꿀', 730]
+]
+
+// 이름으로 못 찾을 때 종류별 기본값 (보관 위치별)
+const KIND_SHELF_LIFE_DEFAULT = {
+  '채소': { 냉장: 7, 냉동: 90, 실온: 5, 기타: 7 },
+  '과일': { 냉장: 7, 냉동: 90, 실온: 4, 기타: 5 },
+  '고기·생선': { 냉장: 3, 냉동: 90, 실온: 1, 기타: 3 },
+  '유제품·계란': { 냉장: 10, 냉동: 60, 실온: 3, 기타: 7 },
+  '밥·면·빵': { 냉장: 5, 냉동: 30, 실온: 3, 기타: 5 },
+  '음료': { 냉장: 14, 냉동: 90, 실온: 180, 기타: 60 },
+  '양념·소스': { 냉장: 180, 냉동: 365, 실온: 365, 기타: 180 },
+  '간식': { 냉장: 30, 냉동: 90, 실온: 60, 기타: 30 },
+  '기타': null
+}
+
+// 이름·보관위치로 기본 소비기한(일) 추정. 못 찾으면 null(기한 없음 취급)
+export function guessShelfLifeDays(name, category) {
+  const cat = category || '기타'
+  for (const [keyword, val] of SHELF_LIFE_BY_NAME) {
+    if (name && name.includes(keyword)) {
+      return typeof val === 'object' ? (val[cat] ?? val['냉장'] ?? null) : val
+    }
+  }
+  const kind = guessKind(name) || '기타'
+  const fallback = KIND_SHELF_LIFE_DEFAULT[kind]
+  if (!fallback) return null
+  return fallback[cat] ?? null
+}
+
+export function addDays(date, days) {
+  const d = new Date(date)
+  d.setDate(d.getDate() + days)
+  return d
+}
+
+// 오늘(자정 기준)로부터 남은 일수. 음수면 지남.
+export function daysUntil(date) {
+  if (!date) return null
+  const now = new Date()
+  const target = date instanceof Date ? date : new Date(date)
+  const a = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const b = new Date(target.getFullYear(), target.getMonth(), target.getDate())
+  return Math.round((b - a) / 86400000)
+}
+
+export function expiryLabel(daysLeft) {
+  if (daysLeft === null || daysLeft === undefined) return null
+  if (daysLeft < 0) return `${Math.abs(daysLeft)}일 지남`
+  if (daysLeft === 0) return '오늘까지'
+  return `D-${daysLeft}`
+}
+
+// 'over' | 'soon' | 'ok'
+export function expiryTone(daysLeft) {
+  if (daysLeft === null || daysLeft === undefined) return null
+  if (daysLeft < 0) return 'over'
+  if (daysLeft <= 3) return 'soon'
+  return 'ok'
+}
+
+// item.expiresAt(Firestore Timestamp) → 남은 일수
+export function itemDaysLeft(item) {
+  if (!item?.expiresAt) return null
+  const d = item.expiresAt.toDate ? item.expiresAt.toDate() : new Date(item.expiresAt)
+  return daysUntil(d)
+}
+
 export const MEMO_COLORS = {
   pink: '#F9CFD6',
   yellow: '#FFF3C4',

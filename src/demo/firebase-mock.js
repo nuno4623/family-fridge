@@ -9,9 +9,19 @@ const ts = (ms) => ({
   seconds: Math.floor(ms / 1000)
 })
 export const serverTimestamp = () => ts(Date.now())
+export const Timestamp = {
+  fromDate: (date) => ts(date.getTime()),
+  now: () => ts(Date.now())
+}
 
 const now = Date.now()
 const hoursAgo = (h) => ts(now - h * 3600_000)
+const expiresIn = (d) => {
+  const date = new Date()
+  date.setHours(0, 0, 0, 0)
+  date.setDate(date.getDate() + d)
+  return ts(date.getTime())
+}
 const daysFromNow = (d) => {
   const date = new Date()
   date.setDate(date.getDate() + d)
@@ -51,16 +61,16 @@ seed('families', [
 ])
 
 seed(`families/${FAM}/items`, [
-  ['i1', { name: '계란', category: '냉장', status: 'out', memo: '30구짜리로', checkedInCart: false, updatedBy: U2, updatedAt: hoursAgo(2) }],
-  ['i2', { name: '우유', category: '냉장', status: 'low', memo: '', checkedInCart: false, updatedBy: U3, updatedAt: hoursAgo(5) }],
-  ['i3', { name: '두부', category: '냉장', status: 'buying', memo: '', checkedInCart: false, updatedBy: U1, updatedAt: hoursAgo(1) }],
-  ['i4', { name: '김치', category: '냉장', status: 'stocked', memo: '', checkedInCart: false, updatedBy: U3, updatedAt: hoursAgo(48) }],
-  ['i5', { name: '애호박', category: '냉장', status: 'stocked', memo: '', checkedInCart: false, updatedBy: U1, updatedAt: hoursAgo(20) }],
-  ['i6', { name: '만두', category: '냉동', status: 'stocked', memo: '', checkedInCart: false, updatedBy: U2, updatedAt: hoursAgo(72) }],
-  ['i7', { name: '국거리 소고기', category: '냉동', status: 'low', memo: '', checkedInCart: false, updatedBy: U3, updatedAt: hoursAgo(8) }],
-  ['i8', { name: '라면', category: '실온', status: 'stocked', memo: '', checkedInCart: false, updatedBy: U2, updatedAt: hoursAgo(100) }],
-  ['i9', { name: '쌀', category: '실온', status: 'low', memo: '10kg', checkedInCart: false, updatedBy: U1, updatedAt: hoursAgo(30) }],
-  ['i10', { name: '참기름', category: '실온', status: 'buying', memo: '작은 병', checkedInCart: true, updatedBy: U3, updatedAt: hoursAgo(3) }]
+  ['i1', { name: '계란', category: '냉장', status: 'out', memo: '30구짜리로', checkedInCart: false, updatedBy: U2, updatedAt: hoursAgo(2), expiresAt: expiresIn(20) }],
+  ['i2', { name: '우유', category: '냉장', status: 'low', memo: '', checkedInCart: false, updatedBy: U3, updatedAt: hoursAgo(5), expiresAt: expiresIn(1) }],
+  ['i3', { name: '두부', category: '냉장', status: 'buying', memo: '', checkedInCart: false, updatedBy: U1, updatedAt: hoursAgo(1), expiresAt: expiresIn(-1) }],
+  ['i4', { name: '김치', category: '냉장', status: 'stocked', memo: '', checkedInCart: false, updatedBy: U3, updatedAt: hoursAgo(48), expiresAt: expiresIn(45) }],
+  ['i5', { name: '애호박', category: '냉장', status: 'stocked', memo: '', checkedInCart: false, updatedBy: U1, updatedAt: hoursAgo(20), expiresAt: expiresIn(4) }],
+  ['i6', { name: '만두', category: '냉동', status: 'stocked', memo: '', checkedInCart: false, updatedBy: U2, updatedAt: hoursAgo(72), expiresAt: expiresIn(55) }],
+  ['i7', { name: '국거리 소고기', category: '냉동', status: 'low', memo: '', checkedInCart: false, updatedBy: U3, updatedAt: hoursAgo(8), expiresAt: expiresIn(80) }],
+  ['i8', { name: '라면', category: '실온', status: 'stocked', memo: '', checkedInCart: false, updatedBy: U2, updatedAt: hoursAgo(100), expiresAt: expiresIn(170) }],
+  ['i9', { name: '쌀', category: '실온', status: 'low', memo: '10kg', checkedInCart: false, updatedBy: U1, updatedAt: hoursAgo(30), expiresAt: expiresIn(150) }],
+  ['i10', { name: '참기름', category: '실온', status: 'buying', memo: '작은 병', checkedInCart: true, updatedBy: U3, updatedAt: hoursAgo(3), expiresAt: expiresIn(160) }]
 ])
 
 seed(`families/${FAM}/events`, [

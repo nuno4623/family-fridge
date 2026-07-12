@@ -1,11 +1,25 @@
 import { useEffect, useState } from 'react'
-import { collection, doc, addDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore'
+import { collection, doc, addDoc, updateDoc, deleteDoc, serverTimestamp, Timestamp } from 'firebase/firestore'
 import { db } from '../firebase'
 import { useAuth } from '../contexts/AuthContext'
 import BottomSheet from './BottomSheet'
-import { CATEGORIES, CAT_EMOJI, KINDS, KIND_EMOJI, STATUS, guessEmoji, guessKind } from '../utils'
+import {
+  CATEGORIES, CAT_EMOJI, KINDS, KIND_EMOJI, STATUS, guessEmoji, guessKind,
+  toDateStr, todayStr, guessShelfLifeDays, addDays, daysUntil, expiryLabel, expiryTone
+} from '../utils'
 
 const EMOJI_OPTIONS = ['🥚', '🥛', '🥬', '🍎', '🥩', '🍗', '🐟', '🍜', '🥫', '🧂']
+
+function dateFromStr(s) {
+  const [y, m, d] = s.split('-').map(Number)
+  return new Date(y, m - 1, d)
+}
+
+const TONE_COLOR = {
+  over: 'rgb(var(--ff-danger))',
+  soon: 'rgb(var(--ff-warn))',
+  ok: 'rgb(var(--ff-good))'
+}
 
 // 식재료 추가 + 수정 시트 (item이 있으면 수정 모드)
 export default function AddItemSheet({ open, onClose, initialStatus = 'stocked', item = null }) {
@@ -17,6 +31,9 @@ export default function AddItemSheet({ open, onClose, initialStatus = 'stocked',
   const [status, setStatus] = useState(initialStatus)
   const [pickedEmoji, setPickedEmoji] = useState(null) // null = 이름 보고 자동
   const [pickedKind, setPickedKind] = useState(null) // null = 이름 보고 자동
+  const [purchasedDate, setPurchasedDate] = useState(todayStr())
+  const [expiresDate, setExpiresDate] = useState('') // '' = 기한 없음
+  const [expiryTouched, setExpiryTouched] = useState(false) // 사용자가 직접 손댔으면 자동계산 멈춤
 
   // 열릴 때 수정 대상 값으로 채우기
   useEffect(() => {
@@ -28,14 +45,36 @@ export default function AddItemSheet({ open, onClose, initialStatus = 'stocked',
       setStatus(item.status || 'stocked')
       setPickedEmoji(item.emoji || null)
       setPickedKind(item.kind || null)
+      const pd = item.purchasedAt?.toDate ? item.purchasedAt.toDate() : null
+      setPurchasedDate(pd ? toDateStr(pd) : todayStr())
+      const ed = item.expiresAt?.toDate ? item.expiresAt.toDate() : null
+      setExpiresDate(ed ? toDateStr(ed) : '')
+      setExpiryTouched(true) // 기존 값은 그대로 두고 자동 재계산하지 않음
     } else {
+      setName('')
+      setMemo('')
+      setPickedEmoji(null)
+      setPickedKind(null)
       setStatus(initialStatus)
+      setPurchasedDate(todayStr())
+      setExpiresDate('')
+      setExpiryTouched(false)
     }
   }, [open, item, initialStatus])
+
+  // 이름·보관위치·구매일이 바뀌면 유통기한 자동 제안 (사용자가 직접 고친 적 없을 때만)
+  useEffect(() => {
+    if (expiryTouched) return
+    if (!name.trim()) { setExpiresDate(''); return }
+    const days = guessShelfLifeDays(name, category)
+    setExpiresDate(days == null ? '' : toDateStr(addDays(dateFromStr(purchasedDate), days)))
+  }, [name, category, purchasedDate, expiryTouched])
 
   const autoEmoji = guessEmoji(name) || CAT_EMOJI[category]
   const currentEmoji = pickedEmoji || autoEmoji
   const currentKind = pickedKind || guessKind(name) || '기타'
+  const previewDaysLeft = expiresDate ? daysUntil(dateFromStr(expiresDate)) : null
+  const previewTone = expiryTone(previewDaysLeft)
 
   async function commit() {
     const n = name.trim()
@@ -46,6 +85,9 @@ export default function AddItemSheet({ open, onClose, initialStatus = 'stocked',
       kind: currentKind,
       memo: memo.trim(),
       emoji: pickedEmoji, // null이면 표시할 때 이름으로 자동 매칭
+      purchasedAt: purchasedDate ? Timestamp.fromDate(dateFromStr(purchasedDate)) : null,
+      expiresAt: expiresDate ? Timestamp.fromDate(dateFromStr(expiresDate)) : null,
+      shelfLifeDays: guessShelfLifeDays(n, category),
       updatedBy: user.uid,
       updatedByName: profile?.name || '',
       updatedAt: serverTimestamp()
@@ -62,10 +104,6 @@ export default function AddItemSheet({ open, onClose, initialStatus = 'stocked',
         status: initialStatus,
         checkedInCart: false
       })
-      setName('')
-      setMemo('')
-      setPickedEmoji(null)
-      setPickedKind(null)
     }
     onClose()
   }
@@ -159,6 +197,49 @@ export default function AddItemSheet({ open, onClose, initialStatus = 'stocked',
           </button>
         ))}
       </div>
+
+      <div className="flex items-center justify-between mt-4 mb-2">
+        <span className="text-[12.5px] font-bold text-muted">
+          구매일 · 유통기한 <span className="font-semibold">— 이름 쓰면 자동으로 맞춰져요</span>
+        </span>
+        {previewDaysLeft !== null && (
+          <span
+            className="text-[11.5px] font-extrabold text-white px-2.5 py-1 rounded-full whitespace-nowrap"
+            style={{ background: TONE_COLOR[previewTone] }}
+          >
+            {expiryLabel(previewDaysLeft)}
+          </span>
+        )}
+      </div>
+      <div className="flex gap-2">
+        <div className="flex-1 min-w-0">
+          <p className="text-[11.5px] font-semibold text-muted mb-1">구매일</p>
+          <input
+            type="date"
+            value={purchasedDate}
+            onChange={(e) => setPurchasedDate(e.target.value)}
+            className="w-full bg-alt border-[1.5px] border-line rounded-btn px-3 py-2.5 text-[14px] font-semibold outline-none focus:border-accent"
+          />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-[11.5px] font-semibold text-muted mb-1">유통기한</p>
+          <input
+            type="date"
+            value={expiresDate}
+            onChange={(e) => { setExpiresDate(e.target.value); setExpiryTouched(true) }}
+            className="w-full bg-alt border-[1.5px] border-line rounded-btn px-3 py-2.5 text-[14px] font-semibold outline-none focus:border-accent"
+          />
+        </div>
+      </div>
+      {expiresDate && (
+        <button
+          onClick={() => { setExpiresDate(''); setExpiryTouched(true) }}
+          className="text-[12px] font-bold text-muted underline mt-1.5 press"
+        >
+          기한 없음으로 두기
+        </button>
+      )}
+
       <div className="text-[12.5px] font-bold text-muted mb-2 mt-4">메모 (선택)</div>
       <input
         value={memo}
