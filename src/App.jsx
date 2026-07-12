@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useAuth } from './contexts/AuthContext'
 import { useTheme } from './theme'
 import { useFamilyCollection } from './hooks/useFamilyCollection'
@@ -13,6 +13,7 @@ import Calendar from './screens/Calendar'
 import Memos from './screens/Memos'
 import Settings from './screens/Settings'
 import { STATUS } from './utils'
+import { refreshPushTokenIfGranted } from './notifications'
 
 export default function App() {
   const { user, profile, familyId, members } = useAuth()
@@ -54,6 +55,15 @@ export default function App() {
   const items = useFamilyCollection(familyId, 'items', 'updatedAt', onItemChange)
   const events = useFamilyCollection(familyId, 'events', 'date', onEventChange)
   const memos = useFamilyCollection(familyId, 'memos', 'createdAt', onMemoChange)
+
+  // FCM 토큰은 브라우저가 주기적으로 회전시키는데 지금까지는 갱신 로직이 없어서
+  // 시간이 지나면 알림이 조용히 끊겼다 — 앱을 열 때마다(권한 이미 허용 시) 재등록
+  const tokenRefreshed = useRef(false)
+  useEffect(() => {
+    if (!user || tokenRefreshed.current) return
+    tokenRefreshed.current = true
+    refreshPushTokenIfGranted(user.uid)
+  }, [user])
 
   if (user === undefined) {
     return (

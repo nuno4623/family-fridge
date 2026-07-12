@@ -4,7 +4,7 @@ import { db } from '../firebase'
 import { useAuth } from '../contexts/AuthContext'
 import { useTheme, THEMES, FONTS, SIZES } from '../theme'
 import { useToast } from '../components/Toast'
-import { enablePush, disablePush } from '../notifications'
+import { enablePush, disablePush, sendTestNotification } from '../notifications'
 import { MEMBER_COLORS, storage } from '../utils'
 
 function Toggle({ on, onChange }) {
@@ -37,6 +37,7 @@ export default function Settings({ onClose }) {
   const [famName, setFamName] = useState(family?.name || '')
   const [busy, setBusy] = useState(false)
   const [leaveArm, setLeaveArm] = useState(false) // 가족 나가기 2단계 확인
+  const [testBusy, setTestBusy] = useState(false)
 
   useEffect(() => {
     if (family?.name) setFamName(family.name)
@@ -198,6 +199,30 @@ export default function Settings({ onClose }) {
               <Toggle on={!!notify[key]} onChange={() => toggleNotify(key)} />
             </div>
           ))}
+          <button
+            onClick={async () => {
+              if (!pushEnabled) { showToast('먼저 "이 기기에서 푸시 받기"를 켜주세요'); return }
+              setTestBusy(true)
+              try {
+                const res = await sendTestNotification()
+                if (res.sent > 0) showToast(`테스트 알림을 보냈어요 (${res.sent}개 기기)`)
+                else showToast(res.message || '전송된 기기가 없어요')
+              } catch (e) {
+                console.error(e)
+                showToast('테스트 알림 전송에 실패했어요')
+              } finally {
+                setTestBusy(false)
+              }
+            }}
+            disabled={testBusy}
+            className="w-full mt-4 py-3 rounded-btn text-[13.5px] font-extrabold text-accent bg-accent-soft press disabled:opacity-50"
+          >
+            {testBusy ? '보내는 중…' : '🔔 테스트 알림 보내기'}
+          </button>
+          <p className="text-[12px] font-semibold text-muted mt-3 leading-relaxed">
+            알림이 늦거나 안 오면: 아이폰은 <b>홈 화면에 추가</b>한 상태여야 하고, <b>저전력 모드·집중 모드</b>를
+            확인해 주세요. 안드로이드는 배터리 최적화에서 이 앱을 제외하면 더 빨리 와요.
+          </p>
         </Section>
 
         <Section title="우리 가족">
