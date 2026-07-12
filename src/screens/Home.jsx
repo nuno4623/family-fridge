@@ -1,7 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
-import { greeting, toDateStr, MEMO_COLORS, occursOn, eventExtraLabel, isIOS, isStandalone, storage } from '../utils'
+import {
+  greeting, toDateStr, MEMO_COLORS, occursOn, eventExtraLabel, isIOS, isStandalone, storage,
+  itemDaysLeft
+} from '../utils'
 import InstallGuide from '../components/InstallGuide'
+
+const MAX_PINNED_ON_HOME = 3
 
 const LAST_SEEN_KEY = 'fridge:lastSeenAt'
 const DAY_NAMES = ['일', '월', '화', '수', '목', '금', '토']
@@ -37,9 +42,14 @@ export default function Home({ items, events, memos, onGoTab, onOpenSettings }) 
     total: (items || []).length,
     low: (items || []).filter((i) => i.status === 'low').length,
     out: (items || []).filter((i) => i.status === 'out').length,
-    shop: (items || []).filter((i) => i.status !== 'stocked').length
+    shop: (items || []).filter((i) => i.status !== 'stocked').length,
+    expiringSoon: (items || []).filter((i) => {
+      const d = itemDaysLeft(i)
+      return d !== null && d <= 3
+    }).length
   }), [items])
-  const pinnedMemos = useMemo(() => (memos || []).filter((m) => m.pinned), [memos])
+  const allPinnedMemos = useMemo(() => (memos || []).filter((m) => m.pinned), [memos])
+  const pinnedMemos = allPinnedMemos.slice(0, MAX_PINNED_ON_HOME)
 
   // 마지막 접속 이후 새 소식 (다른 가족이 만든 변경)
   useEffect(() => {
@@ -78,9 +88,12 @@ export default function Home({ items, events, memos, onGoTab, onOpenSettings }) 
         </button>
       </header>
 
-      <button
+      <div
+        role="button"
+        tabIndex={0}
         onClick={() => onGoTab('fridge')}
-        className="w-full text-left rounded-hero p-[22px] text-white shadow-card press"
+        onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onGoTab('fridge')}
+        className="w-full text-left rounded-hero p-[22px] text-white shadow-card press cursor-pointer"
         style={{ background: 'linear-gradient(140deg, rgb(var(--ff-accent)) 0%, rgb(var(--ff-accent-deep)) 100%)' }}
       >
         <div className="flex justify-between items-center">
@@ -104,8 +117,13 @@ export default function Home({ items, events, memos, onGoTab, onOpenSettings }) 
             </div>
           ))}
         </div>
+        {stat.expiringSoon > 0 && (
+          <p className="text-[12px] font-bold bg-white/20 rounded-full px-3 py-1.5 text-center mt-3">
+            ⏰ 유통기한 임박 {stat.expiringSoon}개
+          </p>
+        )}
         <p className="text-[11.5px] font-semibold opacity-75 text-center mt-3">누르면 냉장고로 이동 →</p>
-      </button>
+      </div>
 
       {showInstallBanner && (
         <button
@@ -170,12 +188,18 @@ export default function Home({ items, events, memos, onGoTab, onOpenSettings }) 
 
       {pinnedMemos.length > 0 && (
         <section className="mt-6">
-          <h2 className="text-[16px] font-extrabold mb-3">고정 메모 📌</h2>
+          <div className="flex justify-between items-center mb-3">
+            <h2 className="text-[16px] font-extrabold">고정 메모 📌</h2>
+            {allPinnedMemos.length > MAX_PINNED_ON_HOME && (
+              <button onClick={() => onGoTab('memo')} className="text-[13px] font-bold text-accent press">더보기</button>
+            )}
+          </div>
           <div className="flex flex-col gap-2.5">
             {pinnedMemos.map((m) => (
-              <div
+              <button
                 key={m.id}
-                className="rounded-card shadow-soft px-4 py-3.5 relative"
+                onClick={() => onGoTab('memo')}
+                className="w-full text-left rounded-card shadow-soft px-4 py-3.5 relative press"
                 style={{ background: MEMO_COLORS[m.color] || MEMO_COLORS.yellow }}
               >
                 <span
@@ -184,7 +208,7 @@ export default function Home({ items, events, memos, onGoTab, onOpenSettings }) 
                 />
                 <p className="text-[14.5px] font-semibold text-[#4A4238] whitespace-pre-wrap pt-2">{m.text}</p>
                 <p className="text-[12px] font-semibold text-[#4A4238]/50 mt-1">{members[m.author]?.name || ''}</p>
-              </div>
+              </button>
             ))}
           </div>
         </section>
