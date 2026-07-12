@@ -102,19 +102,56 @@ exports.onItemWrite = onDocumentWritten('families/{familyId}/items/{itemId}', as
   )
 })
 
-// 2) 새 일정 알림
+const WEEKDAY_KO = ['일', '월', '화', '수', '목', '금', '토']
+
+// 'YYYY-MM-DD' → '7/20 화' (파싱 실패 시 '')
+function shortDateLabel(ds) {
+  if (!ds) return ''
+  const [y, m, d] = ds.split('-').map(Number)
+  if (!y || !m || !d) return ''
+  const wd = WEEKDAY_KO[new Date(y, m - 1, d).getDay()]
+  return `${m}/${d} ${wd}`
+}
+
+// 2) 일정 추가 알림
 exports.onEventCreate = onDocumentCreated('families/{familyId}/events/{eventId}', async (event) => {
   const data = event.data.data()
   const name = data.ownerName || await actorName(data.owner)
-  const [, m, d] = (data.date || '').split('-').map(Number)
-  const when = m && d ? `${m}월 ${d}일${data.time ? ' ' + data.time : ''}` : ''
+  const when = shortDateLabel(data.date)
   await notifyFamily(
     event.params.familyId,
     data.owner,
     'event',
     '📅 새 일정',
-    `${name}: ${data.title}${when ? ` (${when})` : ''}`
+    `${name}님이 '${data.title}' 일정을 추가했어요${when ? ` (${when})` : ''}`
   )
+})
+
+// 2-1) 일정 수정/삭제 알림 (생성은 위 onEventCreate가 처리하므로 before가 없으면 무시)
+exports.onEventChange = onDocumentWritten('families/{familyId}/events/{eventId}', async (event) => {
+  const before = event.data.before.exists ? event.data.before.data() : null
+  const after = event.data.after.exists ? event.data.after.data() : null
+  if (!before) return
+
+  if (after) {
+    const name = after.ownerName || await actorName(after.owner)
+    await notifyFamily(
+      event.params.familyId,
+      after.owner,
+      'event',
+      '📅 일정 변경',
+      `${name}님이 '${after.title}' 일정을 변경했어요`
+    )
+  } else {
+    const name = before.ownerName || await actorName(before.owner)
+    await notifyFamily(
+      event.params.familyId,
+      before.owner,
+      'event',
+      '📅 일정 삭제',
+      `${name}님이 '${before.title}' 일정을 삭제했어요`
+    )
+  }
 })
 
 // 3) 새 메모 알림
@@ -174,13 +211,48 @@ async function sendExpiryDigestForFamily(familyId, todayStr) {
   await notifyMembers(familyId, 'shopping', '🥕 유통기한이 다가와요', `${preview}${more}`)
 }
 
-// 매일 아침 08:00 KST — 가족별 유통기한 임박 재료 요약 알림
-// (일정 알림도 같은 스케줄에서 함께 처리 — sendTodayEventsDigestForFamily 참고)
+// 일정이 dateStr에 표시되어야 하는지 — 클라이언트 src/utils.js의 occursOn()과 동일 로직.
+// Cloud Functions(CJS)와 Vite 프론트(ESM)가 별도 빌드라 부득이 중복 구현 — occursOn 수정 시 함께 반영할 것.
+function occursOnDate(ev, ds) {
+  if (!ev.date || !ds || ds < ev.date) return false
+  const repeat = ev.repeat || 'none'
+  if (repeat === 'none') return ds <= (ev.endDate || ev.date)
+  const [sy, sm, sd] = ev.date.split('-').map(Number)
+  const [, m, d] = ds.split('-').map(Number)
+  if (repeat === 'daily') return true
+  if (repeat === 'weekly') {
+    const [y] = ds.split('-').map(Number)
+    return new Date(y, m - 1, d).getDay() === new Date(sy, sm - 1, sd).getDay()
+  }
+  if (repeat === 'monthly') return d === sd
+  if (repeat === 'yearly') return d === sd && m === sm
+  return false
+}
+
+// 오늘(dateStr) 일정이 있으면 가족 전원에게 요약 알림. 없으면 발송 안 함.
+async function sendTodayEventsDigestForFamily(familyId, dateStr) {
+  const eventsSnap = await db.collection(`families/${familyId}/events`).get()
+  const todays = []
+  eventsSnap.forEach((doc) => {
+    const d = doc.data()
+    if (occursOnDate(d, dateStr)) todays.push(d)
+  })
+  if (todays.length === 0) return
+
+  todays.sort((a, b) => ((a.time || '') < (b.time || '') ? -1 : 1))
+  const body = todays.map((e) => (e.time ? `${e.title}(${e.time})` : e.title)).join(', ')
+  await notifyMembers(familyId, 'event', '📅 오늘 일정', body)
+}
+
+// 매일 아침 08:00 KST — 가족별 유통기한 임박 재료 + 오늘 일정 요약 알림 (각각 별도 발송)
 exports.dailyDigest = onSchedule(
   { schedule: '0 8 * * *', timeZone: 'Asia/Seoul', region: 'asia-northeast3' },
   async () => {
     const todayStr = kstDateStr()
     const familiesSnap = await db.collection('families').get()
-    await Promise.all(familiesSnap.docs.map((fam) => sendExpiryDigestForFamily(fam.id, todayStr)))
+    await Promise.all(familiesSnap.docs.map(async (fam) => {
+      await sendExpiryDigestForFamily(fam.id, todayStr)
+      await sendTodayEventsDigestForFamily(fam.id, todayStr)
+    }))
   }
 )
