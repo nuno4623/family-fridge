@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import {
-  collection, doc, addDoc, updateDoc, deleteDoc, serverTimestamp, writeBatch, Timestamp
+  collection, doc, addDoc, updateDoc, deleteDoc, serverTimestamp, Timestamp
 } from 'firebase/firestore'
 import { db } from '../firebase'
 import { useAuth } from '../contexts/AuthContext'
@@ -136,30 +136,34 @@ export default function Fridge({ items }) {
     })
   }
 
-  function toggleChecked(item) {
+  // 장보기 모드에서 항목을 탭하면 즉시 재고로 반영 (다른 가족도 실시간으로 봄).
+  // 실수 대비 3~5초 "실행 취소" 토스트 제공.
+  function completeItem(item) {
     updateDoc(doc(itemsCol, item.id), {
-      checkedInCart: !item.checkedInCart,
+      status: 'stocked',
+      checkedInCart: false,
+      ...freshDates(item.name, item.category),
       updatedBy: user.uid,
       updatedByName: myName,
       updatedAt: serverTimestamp()
     })
-  }
-
-  async function finishShopping() {
-    const checked = cartList.filter((i) => i.checkedInCart)
-    if (checked.length === 0) return
-    const batch = writeBatch(db)
-    for (const it of checked) {
-      batch.update(doc(itemsCol, it.id), {
-        status: 'stocked',
-        checkedInCart: false,
-        updatedBy: user.uid,
-        updatedByName: myName,
-        updatedAt: serverTimestamp()
-      })
-    }
-    await batch.commit()
-    showToast('냉장고 채웠어요 🎉')
+    showToast(`${item.name} 냉장고에 넣었어요 🎉`, {
+      action: {
+        label: '실행 취소',
+        onClick: () => {
+          updateDoc(doc(itemsCol, item.id), {
+            status: 'buying',
+            checkedInCart: false,
+            purchasedAt: item.purchasedAt || null,
+            expiresAt: item.expiresAt || null,
+            shelfLifeDays: item.shelfLifeDays ?? null,
+            updatedBy: user.uid,
+            updatedByName: myName,
+            updatedAt: serverTimestamp()
+          })
+        }
+      }
+    })
   }
 
   function StatusPill({ item }) {
@@ -342,39 +346,23 @@ export default function Fridge({ items }) {
             {cartList.map((item) => (
               <SwipeToDelete key={item.id} onDelete={() => deleteDoc(doc(itemsCol, item.id))}>
                 <button
-                  onClick={() => toggleChecked(item)}
-                  className={`flex items-center gap-3.5 w-full rounded-card border border-line px-3.5 py-3.5 min-h-[60px] press text-left ${
-                    item.checkedInCart ? 'bg-alt opacity-60' : 'bg-card shadow-card'
-                  }`}
+                  onClick={() => completeItem(item)}
+                  className="flex items-center gap-3.5 w-full rounded-card border border-line px-3.5 py-3.5 min-h-[60px] press text-left bg-card shadow-card"
                 >
-                  <span
-                    className={`w-6 h-6 rounded-lg grid place-items-center text-[14px] font-extrabold text-white shrink-0 ${
-                      item.checkedInCart ? 'bg-accent' : 'border-2 border-line bg-transparent'
-                    }`}
-                  >
-                    {item.checkedInCart ? '✓' : ''}
+                  <span className="w-7 h-7 rounded-lg grid place-items-center text-[16px] font-extrabold text-white shrink-0 border-2 border-line bg-transparent">
+                    ✓
                   </span>
                   <span className="text-[22px]">{itemEmoji(item)}</span>
-                  <span className={`text-[15px] font-bold flex-1 ${item.checkedInCart ? 'line-through' : ''}`}>
-                    {item.name}
-                  </span>
+                  <span className="text-[15px] font-bold flex-1">{item.name}</span>
                   <ExpiryBadge item={item} />
                   {item.memo && <span className="text-[12px] font-semibold text-muted">{item.memo}</span>}
                 </button>
               </SwipeToDelete>
             ))}
             {cartList.length > 0 && (
-              <p className="text-[12px] font-semibold text-muted/70 text-center mt-1">왼쪽으로 밀면 목록에서 삭제돼요</p>
-            )}
-            {cartList.length > 0 && (
-              <button
-                onClick={finishShopping}
-                disabled={!cartList.some((i) => i.checkedInCart)}
-                className="mt-4 py-4 rounded-2xl text-[15.5px] font-extrabold text-white bg-accent press disabled:opacity-40"
-                style={{ boxShadow: '0 8px 20px rgb(var(--ff-accent) / .4)' }}
-              >
-                장보기 완료 ({cartList.filter((i) => i.checkedInCart).length}개 냉장고에 넣기)
-              </button>
+              <p className="text-[12px] font-semibold text-muted/70 text-center mt-1">
+                눌러서 담기 완료 (바로 냉장고에 반영) · 왼쪽으로 밀면 삭제
+              </p>
             )}
           </div>
         )}
