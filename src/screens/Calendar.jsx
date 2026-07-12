@@ -20,6 +20,7 @@ export default function Calendar({ events, fabTick }) {
   const [rangeMode, setRangeMode] = useState(null) // null | 'start' | 'end' — 캘린더에서 기간 잡는 중
   const [armDelete, setArmDelete] = useState(null) // 두 번 탭 삭제 확인용 일정 id
   const [editingId, setEditingId] = useState(null) // 수정 중인 일정 id (null이면 새로 추가)
+  const [copySrc, setCopySrc] = useState(null) // 복사할 원본 일정 (날짜 고르는 중)
   const [form, setForm] = useState({ title: '', time: '', memo: '', startDate: '', endDate: '', repeat: 'none' })
   const today = todayStr()
   const lastTick = useRef(fabTick)
@@ -196,6 +197,30 @@ export default function Calendar({ events, fabTick }) {
     setAdding(false)
   }
 
+  // 복사 시작: 시트를 닫고 대상 날짜를 캘린더에서 탭
+  function startCopy(ev) {
+    setCopySrc(ev)
+    setSelected(null)
+    setAdding(false)
+  }
+
+  async function doCopy(ds) {
+    const src = copySrc
+    setCopySrc(null)
+    await addDoc(collection(db, 'families', familyId, 'events'), {
+      title: src.title,
+      date: ds,
+      endDate: null, // 복사본은 하루짜리로 (원하면 옮긴 뒤 수정)
+      repeat: 'none',
+      time: src.time || null,
+      memo: src.memo || '',
+      owner: user.uid,
+      ownerName: profile?.name || '',
+      createdAt: serverTimestamp()
+    })
+    setSelected(ds)
+  }
+
   // 브라우저 확인 창 대신 두 번 탭 방식 (카톡 인앱 브라우저에서도 동작)
   function removeEvent(ev) {
     if (armDelete !== ev.id) {
@@ -242,6 +267,15 @@ export default function Calendar({ events, fabTick }) {
         </div>
       )}
 
+      {copySrc && (
+        <div className="mx-4 mb-2 flex items-center gap-2 bg-accent-soft rounded-card px-3.5 py-3">
+          <span className="flex-1 text-[13.5px] font-bold leading-snug">
+            📋 '{copySrc.title}'을(를) 복사할 날짜를 탭하세요
+          </span>
+          <button onClick={() => setCopySrc(null)} className="text-[13px] font-extrabold text-accent press shrink-0">취소</button>
+        </div>
+      )}
+
       <div
         className="bg-card border-y border-line overflow-hidden"
         style={{ touchAction: 'pan-y' }}
@@ -283,7 +317,7 @@ export default function Calendar({ events, fabTick }) {
                   return (
                     <button
                       key={ci}
-                      onClick={() => (rangeMode ? handleRangeTap(ds) : setSelected(ds))}
+                      onClick={() => (copySrc ? doCopy(ds) : rangeMode ? handleRangeTap(ds) : setSelected(ds))}
                       className={`relative h-full ${isSelected || inRange ? 'bg-accent-soft/60' : ''}`}
                     >
                       <span
@@ -339,42 +373,54 @@ export default function Calendar({ events, fabTick }) {
           )}
           {selectedEvents.map((ev) => {
             const owner = members[ev.owner]
+            const mine = ev.owner === user.uid
             return (
-              <div key={ev.id} className="flex items-center gap-3 bg-alt rounded-card px-3.5 py-3">
-                <span
-                  className="text-[11.5px] font-extrabold text-white px-2.5 py-1.5 rounded-full whitespace-nowrap shrink-0"
-                  style={{ background: owner?.color || 'rgb(var(--ff-accent))' }}
-                >
-                  {ev.time || '종일'}
-                </span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[14.5px] font-bold">{ev.title}</p>
-                  <p className="text-[12px] font-semibold text-muted mt-0.5">
-                    {owner?.name || '가족'}
-                    {eventExtraLabel(ev) && ` · ${eventExtraLabel(ev)}`}
-                    {ev.memo && ` · ${ev.memo}`}
-                  </p>
-                </div>
-                {ev.owner === user.uid && (
-                  <div className="flex items-center gap-1 shrink-0">
-                    {armDelete !== ev.id && (
-                      <button
-                        onClick={() => startEdit(ev)}
-                        className="text-[13px] font-bold text-accent px-2 py-2 press whitespace-nowrap"
-                      >
-                        수정
-                      </button>
-                    )}
+              <div key={ev.id} className="bg-alt rounded-card px-3.5 py-3">
+                <div className="flex items-center gap-3">
+                  <span
+                    className="text-[11.5px] font-extrabold text-white px-2.5 py-1.5 rounded-full whitespace-nowrap shrink-0"
+                    style={{ background: owner?.color || 'rgb(var(--ff-accent))' }}
+                  >
+                    {ev.time || '종일'}
+                  </span>
+                  {mine ? (
+                    <button onClick={() => startEdit(ev)} className="flex-1 min-w-0 text-left press">
+                      <p className="text-[14.5px] font-bold truncate">{ev.title} <span className="text-accent text-[12px] font-bold">수정 ›</span></p>
+                      <p className="text-[12px] font-semibold text-muted mt-0.5 truncate">
+                        {owner?.name || '가족'}
+                        {eventExtraLabel(ev) && ` · ${eventExtraLabel(ev)}`}
+                        {ev.memo && ` · ${ev.memo}`}
+                      </p>
+                    </button>
+                  ) : (
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[14.5px] font-bold truncate">{ev.title}</p>
+                      <p className="text-[12px] font-semibold text-muted mt-0.5 truncate">
+                        {owner?.name || '가족'}
+                        {eventExtraLabel(ev) && ` · ${eventExtraLabel(ev)}`}
+                        {ev.memo && ` · ${ev.memo}`}
+                      </p>
+                    </div>
+                  )}
+                  {mine && (
                     <button
                       onClick={() => removeEvent(ev)}
-                      className={`text-[13px] font-bold px-2 py-2 press whitespace-nowrap ${
+                      className={`text-[13px] font-bold px-2 py-2 press whitespace-nowrap shrink-0 ${
                         armDelete === ev.id ? 'text-white bg-danger rounded-btn font-extrabold' : 'text-muted'
                       }`}
                     >
                       {armDelete === ev.id ? '한 번 더 탭!' : '삭제'}
                     </button>
-                  </div>
-                )}
+                  )}
+                </div>
+                <div className="flex gap-2 mt-2">
+                  <button onClick={() => startCopy(ev)} className="text-[12.5px] font-bold text-accent bg-card border border-line rounded-full px-3 py-1.5 press">
+                    📋 다른 날로 복사
+                  </button>
+                  {mine && (
+                    <span className="text-[11.5px] font-semibold text-muted self-center">일정을 눌러 날짜·내용 수정</span>
+                  )}
+                </div>
               </div>
             )
           })}
