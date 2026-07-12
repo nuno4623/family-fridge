@@ -9,33 +9,57 @@ import { MEMO_COLORS, relativeTime } from '../utils'
 export default function Memos({ memos, fabTick }) {
   const { user, profile, familyId, members } = useAuth()
   const [writing, setWriting] = useState(false)
+  const [editMemo, setEditMemo] = useState(null) // 수정 중인 내 메모 (null이면 새 메모)
   const [text, setText] = useState('')
   const [color, setColor] = useState('yellow')
-  const [actionMemo, setActionMemo] = useState(null) // 길게 누른 메모
-  const pressTimer = useRef(null)
+  const [actionMemo, setActionMemo] = useState(null) // 남의 메모 탭 시 (고정만)
   const lastTick = useRef(fabTick)
 
   // 중앙 FAB → 새 메모
   useEffect(() => {
     if (fabTick !== lastTick.current) {
       lastTick.current = fabTick
-      setWriting(true)
+      openNew()
     }
   }, [fabTick])
 
   const memosCol = collection(db, 'families', familyId, 'memos')
 
-  async function addMemo() {
-    if (!text.trim()) return
-    await addDoc(memosCol, {
-      text: text.trim(),
-      color,
-      author: user.uid,
-      authorName: profile?.name || '',
-      pinned: false,
-      createdAt: serverTimestamp()
-    })
+  function openNew() {
+    setEditMemo(null)
     setText('')
+    setColor('yellow')
+    setWriting(true)
+  }
+
+  // 메모 탭: 내 메모면 수정, 남의 메모면 고정 시트
+  function openMemo(m) {
+    if (m.author === user.uid) {
+      setEditMemo(m)
+      setText(m.text || '')
+      setColor(m.color || 'yellow')
+      setWriting(true)
+    } else {
+      setActionMemo(m)
+    }
+  }
+
+  async function saveMemo() {
+    if (!text.trim()) return
+    if (editMemo) {
+      await updateDoc(doc(memosCol, editMemo.id), { text: text.trim(), color })
+    } else {
+      await addDoc(memosCol, {
+        text: text.trim(),
+        color,
+        author: user.uid,
+        authorName: profile?.name || '',
+        pinned: false,
+        createdAt: serverTimestamp()
+      })
+    }
+    setText('')
+    setEditMemo(null)
     setWriting(false)
   }
 
@@ -44,17 +68,10 @@ export default function Memos({ memos, fabTick }) {
     setActionMemo(null)
   }
 
-  // 길게 누르기 → 시트에서 삭제를 고른 것 자체가 의도적이므로 바로 삭제
-  function removeMemo(memo) {
-    deleteDoc(doc(memosCol, memo.id))
-    setActionMemo(null)
-  }
-
-  function startPress(memo) {
-    pressTimer.current = setTimeout(() => setActionMemo(memo), 500)
-  }
-  function endPress() {
-    clearTimeout(pressTimer.current)
+  function removeEditMemo() {
+    if (editMemo) deleteDoc(doc(memosCol, editMemo.id))
+    setEditMemo(null)
+    setWriting(false)
   }
 
   // 2열 분배 (masonry 느낌)
@@ -78,15 +95,10 @@ export default function Memos({ memos, fabTick }) {
           <div key={ci} className="flex-1 flex flex-col gap-3 min-w-0">
             {col.map((m) => {
               const card = (
-                <div
-                  className="rounded-card shadow-soft px-4 pt-5 pb-3 relative select-none press text-[#4A4238]"
+                <button
+                  onClick={() => openMemo(m)}
+                  className="w-full text-left rounded-card shadow-soft px-4 pt-5 pb-3 relative select-none press text-[#4A4238]"
                   style={{ background: MEMO_COLORS[m.color] || MEMO_COLORS.yellow }}
-                  onTouchStart={() => startPress(m)}
-                  onTouchEnd={endPress}
-                  onTouchMove={endPress}
-                  onMouseDown={() => startPress(m)}
-                  onMouseUp={endPress}
-                  onMouseLeave={endPress}
                 >
                   <span
                     className="absolute top-2 left-1/2 -translate-x-1/2 w-3.5 h-3.5 rounded-full border-2 border-white/80 shadow"
@@ -97,7 +109,7 @@ export default function Memos({ memos, fabTick }) {
                   <p className="text-[11.5px] font-semibold opacity-50 mt-2">
                     {members[m.author]?.name || ''} · {relativeTime(m.createdAt)}
                   </p>
-                </div>
+                </button>
               )
               // 내가 쓴 메모만 밀어서 삭제 가능
               return m.author === user.uid ? (
@@ -113,10 +125,10 @@ export default function Memos({ memos, fabTick }) {
       </div>
 
       <p className="text-[12px] font-semibold text-muted/70 text-center mt-6">
-        길게 누르면 홈에 고정 · 내 메모는 왼쪽으로 밀면 삭제
+        메모를 누르면 수정 · 내 메모는 왼쪽으로 밀면 삭제
       </p>
 
-      <BottomSheet open={writing} onClose={() => setWriting(false)} title="새 메모 붙이기 🧲">
+      <BottomSheet open={writing} onClose={() => { setWriting(false); setEditMemo(null) }} title={editMemo ? '메모 수정 ✏️' : '새 메모 붙이기 🧲'}>
         <textarea
           autoFocus
           value={text}
@@ -137,14 +149,27 @@ export default function Memos({ memos, fabTick }) {
             />
           ))}
         </div>
+        {editMemo && (
+          <button
+            onClick={() => togglePin(editMemo)}
+            className="w-full mb-2 py-3 rounded-btn text-[14.5px] font-extrabold bg-alt press"
+          >
+            {editMemo.pinned ? '📌 홈 고정 해제' : '📌 홈에 고정하기'}
+          </button>
+        )}
         <button
-          onClick={addMemo}
+          onClick={saveMemo}
           disabled={!text.trim()}
           className="w-full py-4 rounded-2xl text-[15.5px] font-extrabold text-white bg-accent press disabled:opacity-40"
           style={{ boxShadow: '0 8px 20px rgb(var(--ff-accent) / .4)' }}
         >
-          붙이기
+          {editMemo ? '저장' : '붙이기'}
         </button>
+        {editMemo && (
+          <button onClick={removeEditMemo} className="w-full mt-3 text-[13px] font-bold text-danger/80 underline press">
+            🗑 이 메모 삭제
+          </button>
+        )}
       </BottomSheet>
 
       <BottomSheet open={!!actionMemo} onClose={() => setActionMemo(null)} title="메모 관리">
@@ -153,11 +178,9 @@ export default function Memos({ memos, fabTick }) {
             <button onClick={() => togglePin(actionMemo)} className="bg-alt rounded-btn py-4 text-[15px] font-extrabold press">
               {actionMemo.pinned ? '📌 고정 해제' : '📌 홈에 고정'}
             </button>
-            {actionMemo.author === user.uid && (
-              <button onClick={() => removeMemo(actionMemo)} className="rounded-btn py-4 text-[15px] font-extrabold text-white bg-danger press">
-                🗑 삭제
-              </button>
-            )}
+            <p className="text-[12.5px] font-semibold text-muted text-center py-1">
+              다른 가족이 쓴 메모예요 (고정만 가능)
+            </p>
             <button onClick={() => setActionMemo(null)} className="text-[13.5px] font-bold text-muted py-2">닫기</button>
           </div>
         )}
