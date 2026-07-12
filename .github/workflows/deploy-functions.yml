@@ -1,0 +1,33 @@
+name: 배포 (푸시 알림 Functions)
+
+# Blaze 요금제 필요. functions/ 변경 푸시 시 자동 실행, Actions 탭에서 수동 실행도 가능
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, claude/untitled-session-v32pis]
+    paths:
+      - 'functions/**'
+      - '.github/workflows/deploy-functions.yml'
+
+jobs:
+  deploy-functions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Functions 의존성 설치
+        run: cd functions && npm install
+
+      - name: 서비스 계정 키 준비
+        env:
+          SA_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: printf '%s' "$SA_JSON" > "$RUNNER_TEMP/sa.json"
+
+      - name: Functions 배포
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
+        run: npx firebase-tools deploy --only functions --project family-fridge-2bee4 --non-interactive --force

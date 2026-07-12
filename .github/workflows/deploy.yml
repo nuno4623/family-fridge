@@ -1,0 +1,37 @@
+name: 배포 (호스팅 + 보안규칙)
+
+on:
+  push:
+    branches: [main, claude/untitled-session-v32pis]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: 빌드
+        run: |
+          npm ci
+          npm run build
+
+      - name: 서비스 계정 키 준비
+        env:
+          SA_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          if [ -z "$SA_JSON" ]; then
+            echo "::error::FIREBASE_SERVICE_ACCOUNT 시크릿이 없습니다. 저장소 Settings > Secrets and variables > Actions 에서 등록해 주세요."
+            exit 1
+          fi
+          printf '%s' "$SA_JSON" > "$RUNNER_TEMP/sa.json"
+
+      - name: Firebase 배포
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
+        run: npx firebase-tools deploy --only hosting,firestore:rules --project family-fridge-2bee4 --non-interactive

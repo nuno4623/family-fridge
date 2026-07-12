@@ -1,0 +1,42 @@
+<!-- @dsCard group="냉장고" -->
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>식재료 행</title>
+<link href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@400;500;700;800&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#FBF3EE;--alt:#F5EDE7;--surface:#FFFFFF;--text:#1B2740;--muted:#8C96A8;
+--accent:#FF6B35;--accent-deep:#E8551F;--accent-soft:#FFE2D4;--line:#F0E6DE;
+--good:#2E9E5B;--warn:#F2A81D;--danger:#F0524B;
+--shadow:0 12px 30px rgba(255,107,53,.14)}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Gothic A1',-apple-system,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);font-size:15px;line-height:1.5}
+.card{background:var(--surface);border-radius:18px;border:1px solid var(--line);box-shadow:var(--shadow)}
+.badge{display:inline-flex;align-items:center;justify-content:center;border-radius:9px;padding:5px 10px;font-size:12px;font-weight:800;color:#fff;border:none;white-space:nowrap}
+.btn{border:none;border-radius:16px;font-family:inherit;font-weight:800;font-size:15.5px;color:#fff;background:var(--accent);padding:15px 20px;cursor:pointer;box-shadow:0 8px 20px rgba(255,107,53,.4)}
+.tile{width:44px;height:44px;border-radius:13px;background:var(--alt);display:grid;place-items:center;font-size:23px;flex-shrink:0}
+.muted{color:var(--muted)}
+.row{display:flex;align-items:center;gap:12px}
+.col{display:flex;flex-direction:column;gap:10px}
+body{padding:24px}</style>
+</head>
+<body>
+
+<div class="col">
+  <div class="card row" style="padding:10px 14px;min-height:56px">
+    <span class="tile">🥬</span>
+    <div style="flex:1"><div style="font-size:15px;font-weight:700">계란</div><div class="muted" style="font-size:12px;font-weight:600">준호 · 30구짜리로</div></div>
+    <span class="badge" style="background:var(--danger)">떨어짐</span>
+  </div>
+  <div class="card row" style="padding:10px 14px;min-height:56px">
+    <span class="tile">🧊</span>
+    <div style="flex:1"><div style="font-size:15px;font-weight:700">국거리 소고기</div><div class="muted" style="font-size:12px;font-weight:600">어머님</div></div>
+    <span class="badge" style="background:var(--warn)">곧 떨어짐</span>
+    <span class="badge" style="background:var(--accent);box-shadow:0 4px 10px rgba(255,107,53,.4)">담기</span>
+  </div>
+</div>
+<p class="muted" style="font-size:12px;margin-top:12px">카테고리: 냉장 🥬 · 냉동 🧊 · 실온 🥫 · 기타 🧺</p>
+</body>
+</html>

@@ -1,0 +1,80 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 기본값(오렌지 테마) — React 마운트 전 첫 페인트용. theme.jsx가 이후 갱신 */
+:root {
+  --ff-bg: 251 243 238;
+  --ff-alt: 245 237 231;
+  --ff-accent: 255 107 53;
+  --ff-accent-deep: 232 85 31;
+  --ff-accent-soft: 255 226 212;
+  --ff-line: 240 230 222;
+  --ff-shadow: 0 12px 30px rgba(255, 107, 53, 0.14);
+  --ff-text: 27 39 64;
+  --ff-muted: 140 150 168;
+  --ff-surface: 255 255 255;
+  --ff-good: 46 158 91;
+  --ff-warn: 242 168 29;
+  --ff-danger: 240 82 75;
+  --ff-font: 'Gothic A1', sans-serif;
+}
+
+html {
+  -webkit-tap-highlight-color: transparent;
+  /* 당겨서 새로고침 방지 (삼성 브라우저 포함) */
+  overscroll-behavior-y: none;
+}
+
+/* 가로 스크롤 영역 스크롤바 숨김 */
+.ff-scroll::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+.ff-scroll {
+  scrollbar-width: none;
+}
+
+body {
+  @apply bg-bg text-ink font-sans;
+  font-size: 15px;
+  overscroll-behavior-y: none;
+}
+
+/* 눌리는 느낌 */
+.press {
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+.press:active {
+  transform: scale(0.96);
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-toast-in {
+  animation: toast-in 0.2s ease-out;
+}
+
+@keyframes sheet-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+.animate-sheet-up {
+  animation: sheet-up 0.28s cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.animate-fade-in {
+  animation: fade-in 0.2s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-sheet-up, .animate-toast-in, .animate-fade-in {
+    animation: none;
+  }
+}

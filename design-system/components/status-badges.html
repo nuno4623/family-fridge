@@ -1,0 +1,35 @@
+<!-- @dsCard group="냉장고" -->
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>상태 배지</title>
+<link href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@400;500;700;800&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#FBF3EE;--alt:#F5EDE7;--surface:#FFFFFF;--text:#1B2740;--muted:#8C96A8;
+--accent:#FF6B35;--accent-deep:#E8551F;--accent-soft:#FFE2D4;--line:#F0E6DE;
+--good:#2E9E5B;--warn:#F2A81D;--danger:#F0524B;
+--shadow:0 12px 30px rgba(255,107,53,.14)}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Gothic A1',-apple-system,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);font-size:15px;line-height:1.5}
+.card{background:var(--surface);border-radius:18px;border:1px solid var(--line);box-shadow:var(--shadow)}
+.badge{display:inline-flex;align-items:center;justify-content:center;border-radius:9px;padding:5px 10px;font-size:12px;font-weight:800;color:#fff;border:none;white-space:nowrap}
+.btn{border:none;border-radius:16px;font-family:inherit;font-weight:800;font-size:15.5px;color:#fff;background:var(--accent);padding:15px 20px;cursor:pointer;box-shadow:0 8px 20px rgba(255,107,53,.4)}
+.tile{width:44px;height:44px;border-radius:13px;background:var(--alt);display:grid;place-items:center;font-size:23px;flex-shrink:0}
+.muted{color:var(--muted)}
+.row{display:flex;align-items:center;gap:12px}
+.col{display:flex;flex-direction:column;gap:10px}
+body{padding:24px}</style>
+</head>
+<body>
+
+<div class="row" style="flex-wrap:wrap;gap:10px">
+  <button class="badge" style="background:var(--good);padding:8px 14px">충분</button>
+  <button class="badge" style="background:var(--warn);padding:8px 14px">곧 떨어짐</button>
+  <button class="badge" style="background:var(--danger);padding:8px 14px">떨어짐</button>
+  <button class="badge" style="background:var(--accent);padding:8px 14px">장바구니</button>
+</div>
+<p class="muted" style="font-size:12px;margin-top:14px">흰 글씨 + 시맨틱 컬러 · 누르면 scale(0.96)</p>
+</body>
+</html>

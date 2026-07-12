@@ -1,0 +1,265 @@
+import { useEffect, useState } from 'react'
+import { collection, doc, addDoc, updateDoc, deleteDoc, serverTimestamp, Timestamp } from 'firebase/firestore'
+import { db } from '../firebase'
+import { useAuth } from '../contexts/AuthContext'
+import BottomSheet from './BottomSheet'
+import {
+  CATEGORIES, CAT_EMOJI, KINDS, KIND_EMOJI, STATUS, guessEmoji, guessKind,
+  toDateStr, todayStr, guessShelfLifeDays, addDays, daysUntil, expiryLabel, expiryTone
+} from '../utils'
+
+const EMOJI_OPTIONS = ['🥚', '🥛', '🥬', '🍎', '🥩', '🍗', '🐟', '🍜', '🥫', '🧂']
+
+function dateFromStr(s) {
+  const [y, m, d] = s.split('-').map(Number)
+  return new Date(y, m - 1, d)
+}
+
+const TONE_COLOR = {
+  over: 'rgb(var(--ff-danger))',
+  soon: 'rgb(var(--ff-warn))',
+  ok: 'rgb(var(--ff-good))'
+}
+
+// 식재료 추가 + 수정 시트 (item이 있으면 수정 모드)
+export default function AddItemSheet({ open, onClose, initialStatus = 'stocked', item = null }) {
+  const { user, profile, familyId } = useAuth()
+  const isEdit = !!item
+  const [name, setName] = useState('')
+  const [category, setCategory] = useState('냉장')
+  const [memo, setMemo] = useState('')
+  const [status, setStatus] = useState(initialStatus)
+  const [pickedEmoji, setPickedEmoji] = useState(null) // null = 이름 보고 자동
+  const [pickedKind, setPickedKind] = useState(null) // null = 이름 보고 자동
+  const [purchasedDate, setPurchasedDate] = useState(todayStr())
+  const [expiresDate, setExpiresDate] = useState('') // '' = 기한 없음
+  const [expiryTouched, setExpiryTouched] = useState(false) // 사용자가 직접 손댔으면 자동계산 멈춤
+
+  // 열릴 때 수정 대상 값으로 채우기
+  useEffect(() => {
+    if (!open) return
+    if (item) {
+      setName(item.name || '')
+      setCategory(item.category || '냉장')
+      setMemo(item.memo || '')
+      setStatus(item.status || 'stocked')
+      setPickedEmoji(item.emoji || null)
+      setPickedKind(item.kind || null)
+      const pd = item.purchasedAt?.toDate ? item.purchasedAt.toDate() : null
+      setPurchasedDate(pd ? toDateStr(pd) : todayStr())
+      const ed = item.expiresAt?.toDate ? item.expiresAt.toDate() : null
+      setExpiresDate(ed ? toDateStr(ed) : '')
+      setExpiryTouched(true) // 기존 값은 그대로 두고 자동 재계산하지 않음
+    } else {
+      setName('')
+      setMemo('')
+      setPickedEmoji(null)
+      setPickedKind(null)
+      setStatus(initialStatus)
+      setPurchasedDate(todayStr())
+      setExpiresDate('')
+      setExpiryTouched(false)
+    }
+  }, [open, item, initialStatus])
+
+  // 이름·보관위치·구매일이 바뀌면 유통기한 자동 제안 (사용자가 직접 고친 적 없을 때만)
+  useEffect(() => {
+    if (expiryTouched) return
+    if (!name.trim()) { setExpiresDate(''); return }
+    const days = guessShelfLifeDays(name, category)
+    setExpiresDate(days == null ? '' : toDateStr(addDays(dateFromStr(purchasedDate), days)))
+  }, [name, category, purchasedDate, expiryTouched])
+
+  const autoEmoji = guessEmoji(name) || CAT_EMOJI[category]
+  const currentEmoji = pickedEmoji || autoEmoji
+  const currentKind = pickedKind || guessKind(name) || '기타'
+  const previewDaysLeft = expiresDate ? daysUntil(dateFromStr(expiresDate)) : null
+  const previewTone = expiryTone(previewDaysLeft)
+
+  async function commit() {
+    const n = name.trim()
+    if (!n) { onClose(); return }
+    const payload = {
+      name: n,
+      category,
+      kind: currentKind,
+      memo: memo.trim(),
+      emoji: pickedEmoji, // null이면 표시할 때 이름으로 자동 매칭
+      purchasedAt: purchasedDate ? Timestamp.fromDate(dateFromStr(purchasedDate)) : null,
+      expiresAt: expiresDate ? Timestamp.fromDate(dateFromStr(expiresDate)) : null,
+      shelfLifeDays: guessShelfLifeDays(n, category),
+      updatedBy: user.uid,
+      updatedByName: profile?.name || '',
+      updatedAt: serverTimestamp()
+    }
+    if (isEdit) {
+      await updateDoc(doc(db, 'families', familyId, 'items', item.id), {
+        ...payload,
+        status,
+        checkedInCart: status === 'buying' ? !!item.checkedInCart : false
+      })
+    } else {
+      await addDoc(collection(db, 'families', familyId, 'items'), {
+        ...payload,
+        status: initialStatus,
+        checkedInCart: false
+      })
+    }
+    onClose()
+  }
+
+  async function removeItem() {
+    await deleteDoc(doc(db, 'families', familyId, 'items', item.id))
+    onClose()
+  }
+
+  return (
+    <BottomSheet open={open} onClose={onClose} title={isEdit ? '재료 수정 ✏️' : '식재료 추가 🧺'}>
+      <div className="text-[12.5px] font-bold text-muted mb-2">이름</div>
+      <div className="flex items-center gap-2">
+        <span className="w-12 h-12 rounded-[13px] bg-alt grid place-items-center text-[26px] shrink-0" aria-hidden>
+          {currentEmoji}
+        </span>
+        <input
+          autoFocus={!isEdit}
+          value={name}
+          onChange={(e) => { setName(e.target.value); setPickedEmoji(null); setPickedKind(null) }}
+          onKeyDown={(e) => e.key === 'Enter' && commit()}
+          placeholder="예: 우유, 계란, 사과"
+          className="flex-1 min-w-0 border-[1.5px] border-line rounded-btn px-4 py-3 text-[15px] font-semibold bg-alt outline-none focus:border-accent"
+        />
+      </div>
+
+      {isEdit && (
+        <>
+          <div className="text-[12.5px] font-bold text-muted mb-2 mt-4">상태</div>
+          <div className="flex gap-1.5">
+            {Object.entries(STATUS).map(([key, s]) => (
+              <button
+                key={key}
+                onClick={() => setStatus(key)}
+                className={`flex-1 py-2.5 rounded-[13px] text-[13px] font-extrabold press border-[1.5px] ${
+                  status === key ? 'text-white border-transparent' : 'bg-alt text-muted border-line'
+                }`}
+                style={status === key ? { background: s.color } : undefined}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+
+      <div className="text-[12.5px] font-bold text-muted mb-2 mt-4">
+        아이콘 <span className="font-semibold">— 이름 쓰면 자동으로 맞춰져요. 직접 골라도 OK</span>
+      </div>
+      <div className="flex gap-2 flex-wrap">
+        {EMOJI_OPTIONS.map((e) => (
+          <button
+            key={e}
+            onClick={() => setPickedEmoji(pickedEmoji === e ? null : e)}
+            className={`w-[46px] h-[46px] rounded-[13px] text-[22px] press border-[1.5px] ${
+              pickedEmoji === e ? 'border-accent bg-accent-soft' : 'border-line bg-alt'
+            }`}
+            aria-label={e}
+          >
+            {e}
+          </button>
+        ))}
+      </div>
+      <div className="text-[12.5px] font-bold text-muted mb-2 mt-4">보관 위치</div>
+      <div className="flex gap-2">
+        {CATEGORIES.map((c) => (
+          <button
+            key={c}
+            onClick={() => setCategory(c)}
+            className={`flex-1 py-2.5 rounded-[13px] text-[13.5px] font-bold press border-[1.5px] ${
+              category === c ? 'bg-accent text-white border-accent' : 'bg-alt text-ink border-line'
+            }`}
+          >
+            {CAT_EMOJI[c]} {c}
+          </button>
+        ))}
+      </div>
+      <div className="text-[12.5px] font-bold text-muted mb-2 mt-4">
+        종류 <span className="font-semibold">— 이름 쓰면 자동으로 맞춰져요</span>
+      </div>
+      <div className="flex gap-1.5 flex-wrap">
+        {KINDS.map((k) => (
+          <button
+            key={k}
+            onClick={() => setPickedKind(k)}
+            className={`px-3 py-2 rounded-full text-[12.5px] font-bold press border-[1.5px] ${
+              currentKind === k ? 'bg-accent text-white border-accent' : 'bg-alt text-muted border-line'
+            }`}
+          >
+            {KIND_EMOJI[k]} {k}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex items-center justify-between mt-4 mb-2">
+        <span className="text-[12.5px] font-bold text-muted">
+          구매일 · 유통기한 <span className="font-semibold">— 이름 쓰면 자동으로 맞춰져요</span>
+        </span>
+        {previewDaysLeft !== null && (
+          <span
+            className="text-[11.5px] font-extrabold text-white px-2.5 py-1 rounded-full whitespace-nowrap"
+            style={{ background: TONE_COLOR[previewTone] }}
+          >
+            {expiryLabel(previewDaysLeft)}
+          </span>
+        )}
+      </div>
+      <div className="flex gap-2">
+        <div className="flex-1 min-w-0">
+          <p className="text-[11.5px] font-semibold text-muted mb-1">구매일</p>
+          <input
+            type="date"
+            value={purchasedDate}
+            onChange={(e) => setPurchasedDate(e.target.value)}
+            className="w-full bg-alt border-[1.5px] border-line rounded-btn px-3 py-2.5 text-[14px] font-semibold outline-none focus:border-accent"
+          />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-[11.5px] font-semibold text-muted mb-1">유통기한</p>
+          <input
+            type="date"
+            value={expiresDate}
+            onChange={(e) => { setExpiresDate(e.target.value); setExpiryTouched(true) }}
+            className="w-full bg-alt border-[1.5px] border-line rounded-btn px-3 py-2.5 text-[14px] font-semibold outline-none focus:border-accent"
+          />
+        </div>
+      </div>
+      {expiresDate && (
+        <button
+          onClick={() => { setExpiresDate(''); setExpiryTouched(true) }}
+          className="text-[12px] font-bold text-muted underline mt-1.5 press"
+        >
+          기한 없음으로 두기
+        </button>
+      )}
+
+      <div className="text-[12.5px] font-bold text-muted mb-2 mt-4">메모 (선택)</div>
+      <input
+        value={memo}
+        onChange={(e) => setMemo(e.target.value)}
+        placeholder="예: 30구짜리로"
+        className="w-full border-[1.5px] border-line rounded-btn px-4 py-3 text-[15px] font-semibold bg-alt outline-none focus:border-accent"
+      />
+      <button
+        onClick={commit}
+        disabled={!name.trim()}
+        className="w-full mt-6 py-4 rounded-2xl text-[15.5px] font-extrabold text-white bg-accent press disabled:opacity-40"
+        style={{ boxShadow: '0 8px 20px rgb(var(--ff-accent) / .4)' }}
+      >
+        {isEdit ? '저장' : '냉장고에 넣기'}
+      </button>
+      {isEdit && (
+        <button onClick={removeItem} className="w-full mt-3 text-[13px] font-bold text-danger/80 underline press">
+          🗑 이 재료 삭제
+        </button>
+      )}
+    </BottomSheet>
+  )
+}
